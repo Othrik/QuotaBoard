@@ -1,0 +1,279 @@
+"""设置对话框：平台凭据配置、刷新间隔、手动额度维护。"""
+from __future__ import annotations
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QApplication, QCheckBox, QComboBox, QDialog, QFormLayout, QFrame, QGroupBox,
+    QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMessageBox, QPushButton,
+    QScrollArea, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+)
+
+from ..config import Config
+from ..model import PLATFORM_META
+from ..providers import PROVIDERS
+
+FIELDS_LABEL = {"api_key": "API Key", "ak": "Access Key", "sk": "Secret Key",
+                "manual_token": "手动 Token"}
+
+
+class SettingsDialog(QDialog):
+    def __init__(self, config: Config, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.config = config
+        self.setWindowTitle("QuotaBoard 设置")
+        self.setMinimumWidth(460)
+        self._build_ui()
+        self._load()
+        # 初始尺寸适配屏幕：高不超过可用高度，内容超高时由滚动区承接
+        geo = QApplication.primaryScreen().availableGeometry()
+        self.resize(min(500, geo.width() - 60),
+                    min(int(geo.height() * 0.88), geo.height() - 60))
+
+    def _build_ui(self) -> None:
+        lay = QVBoxLayout(self)
+        lay.setSpacing(10)
+        lay.setContentsMargins(12, 12, 12, 10)
+
+        # ---- 可滚动内容区（平台配置 + 间隔 + 手动额度） ----
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        container = QWidget()
+        clay = QVBoxLayout(container)
+        clay.setSpacing(12)
+        clay.setContentsMargins(2, 2, 2, 2)
+
+        title = QLabel("平台凭据（仅保存在本机，DPAPI 加密）")
+        title.setStyleSheet("font-size: 14px; font-weight: 600;")
+        clay.addWidget(title)
+
+        self.platform_boxes: dict[str, QGroupBox] = {}
+        self.field_inputs: dict[str, dict[str, QLineEdit]] = {}
+        self.enable_checks: dict[str, QCheckBox] = {}
+        self.volc_actions: dict[str, QComboBox] = {}
+
+        for key, meta in PLATFORM_META.items():
+            if key == "manual":
+                continue
+            box = QGroupBox(meta["label"])
+            v = QVBoxLayout(box)
+            v.setSpacing(6)
+
+            chk = QCheckBox("启用此平台")
+            v.addWidget(chk)
+            self.enable_checks[key] = chk
+
+            if key == "chatgpt_plus":
+                guide = QLabel(
+                    "登录 Token 提取：浏览器登录 chatgpt.com → F12 开发者工具 → "
+                    "Application → Cookies → 复制 __Secure-next-auth.session-token "
+                    "的值。Token 过期后需重新提取。")
+                guide.setWordWrap(True)
+                guide.setStyleSheet(
+                    "font-size: 11px; color: #646A73; background: #F5F7FA;"
+                    " border-radius: 6px; padding: 6px 8px;")
+                v.addWidget(guide)
+
+            if key == "codex":
+                guide = QLabel(
+                    "无需填写凭据：通过官方本地协议读取你 ChatGPT 账号的"
+                    "5 小时与每周用量限额（使用 ChatGPT Windows 应用内置的"
+                    "Codex，或 npm 安装的 Codex CLI），鉴权由已登录的账号"
+                    "处理。未找到 codex 时请安装 ChatGPT Windows 应用或"
+                    "Codex CLI。")
+                guide.setWordWrap(True)
+                guide.setStyleSheet(
+                    "font-size: 11px; color: #646A73; background: #F5F7FA;"
+                    " border-radius: 6px; padding: 6px 8px;")
+                v.addWidget(guide)
+
+            if key == "zhipu_member":
+                guide = QLabel(
+                    "自动读取智谱清言客户端登录态（%APPDATA%\\chatglm\\Network"
+                    "\\Cookies）并加密缓存；客户端运行期间也可正常显示。"
+                    "首次使用请在客户端关闭状态下刷新一次，或在此手动粘贴"
+                    "chatglm_token。登录态过期时打开客户端重新登录即可续期。")
+                guide.setWordWrap(True)
+                guide.setStyleSheet(
+                    "font-size: 11px; color: #646A73; background: #F5F7FA;"
+                    " border-radius: 6px; padding: 6px 8px;")
+                v.addWidget(guide)
+
+            inputs: dict[str, QLineEdit] = {}
+            for field, _label in meta["credential_fields"]:
+                row = QHBoxLayout()
+                lab = QLabel(FIELDS_LABEL.get(field, field))
+                lab.setFixedWidth(90)
+                ed = QLineEdit()
+                ed.setEchoMode(QLineEdit.EchoMode.Password)
+                ed.setPlaceholderText("已保存则留空，仅修改时填写")
+                row.addWidget(lab)
+                row.addWidget(ed, 1)
+                v.addLayout(row)
+                inputs[field] = ed
+            self.field_inputs[key] = inputs
+
+            if key == "volc":
+                arow = QHBoxLayout()
+                alab = QLabel("查询方式")
+                alab.setFixedWidth(90)
+                combo = QComboBox()
+                combo.addItems(["GetUsageDetails（套餐用量）",
+                                "ListModelInferenceLimits（模型推理限额）"])
+                arow.addWidget(alab)
+                arow.addWidget(combo, 1)
+                v.addLayout(arow)
+                self.volc_actions[key] = combo
+
+            tbtn = QPushButton("测试连接")
+            tbtn.clicked.connect(lambda _=False, k=key: self._test(k))
+            v.addWidget(tbtn)
+            clay.addWidget(box)
+            self.platform_boxes[key] = box
+
+        # ---- 刷新间隔 ----
+        form = QFormLayout()
+        self.interval_spin = QSpinBox()
+        self.interval_spin.setRange(1, 1440)
+        self.interval_spin.setSuffix(" 分钟")
+        form.addRow("自动刷新间隔", self.interval_spin)
+        clay.addLayout(form)
+
+        # ---- 手动额度 ----
+        mtitle = QLabel("订阅类额度（无公开接口，手动维护）")
+        mtitle.setStyleSheet("font-size: 14px; font-weight: 600;")
+        clay.addWidget(mtitle)
+        self.manual_table = QTableWidget(0, 5)
+        self.manual_table.setHorizontalHeaderLabels(["名称", "总量", "已用", "单位", "备注"])
+        self.manual_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Stretch)
+        self.manual_table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeMode.Stretch)
+        self.manual_table.setMinimumHeight(120)
+        clay.addWidget(self.manual_table)
+        mbtns = QHBoxLayout()
+        add_btn = QPushButton("添加一行")
+        add_btn.clicked.connect(lambda: self.manual_table.insertRow(
+            self.manual_table.rowCount()))
+        del_btn = QPushButton("删除选中行")
+        del_btn.clicked.connect(self._delete_manual_row)
+        mbtns.addWidget(add_btn)
+        mbtns.addWidget(del_btn)
+        mbtns.addStretch(1)
+        clay.addLayout(mbtns)
+
+        scroll.setWidget(container)
+        lay.addWidget(scroll, 1)
+
+        # ---- 保存（固定在窗口底部） ----
+        btns = QHBoxLayout()
+        btns.addStretch(1)
+        save_btn = QPushButton("保存")
+        save_btn.setDefault(True)
+        save_btn.clicked.connect(self._save)
+        cancel_btn = QPushButton("取消")
+        cancel_btn.clicked.connect(self.reject)
+        btns.addWidget(cancel_btn)
+        btns.addWidget(save_btn)
+        lay.addLayout(btns)
+
+    # ---------- 载入 ----------
+    def _load(self) -> None:
+        for key, meta in PLATFORM_META.items():
+            if key == "manual":
+                continue
+            self.enable_checks[key].setChecked(self.config.is_enabled(key))
+            for field, _ in meta["credential_fields"]:
+                saved = self.config.get_credential(key, field)
+                self.field_inputs[key][field].setText(saved)
+                self.field_inputs[key][field].setPlaceholderText(
+                    "已保存（留空则不修改）" if saved else "未配置")
+            if key == "volc":
+                action = self.config.platform_cfg(key).get("action", "GetUsageDetails")
+                self.volc_actions[key].setCurrentIndex(
+                    1 if action == "ListModelInferenceLimits" else 0)
+
+        self.interval_spin.setValue(self.config.refresh_interval_minutes)
+
+        self.manual_table.setRowCount(0)
+        for name, e in self.config.manual_entries.items():
+            r = self.manual_table.rowCount()
+            self.manual_table.insertRow(r)
+            vals = [name, str(e.get("total", "")), str(e.get("used", "")),
+                    str(e.get("unit", "")), str(e.get("note", ""))]
+            for c, v in enumerate(vals):
+                self.manual_table.setItem(r, c, QTableWidgetItem(v))
+
+    # ---------- 测试 ----------
+    def _test(self, key: str) -> None:
+        cfg = {f: ed.text().strip() or self.config.get_credential(key, f)
+               for f, ed in self.field_inputs[key].items()}
+        if key == "volc":
+            cfg["action"] = ("ListModelInferenceLimits"
+                             if self.volc_actions[key].currentIndex() == 1
+                             else "GetUsageDetails")
+        try:
+            provider = PROVIDERS[key](cfg)
+            from ..model import QuotaResult
+            result: QuotaResult = provider.fetch()
+        except Exception as e:
+            QMessageBox.warning(self, "测试失败", f"{key} 测试异常：{e}")
+            return
+        if result.ok:
+            QMessageBox.information(self, "连接成功",
+                                    f"{result.label} 当前剩余：{result.display}")
+        else:
+            QMessageBox.warning(self, "连接失败", f"{result.label}：{result.error}")
+
+    # ---------- 保存 ----------
+    def _delete_manual_row(self) -> None:
+        rows = sorted({i.row() for i in self.manual_table.selectedIndexes()},
+                      reverse=True)
+        for r in rows:
+            self.manual_table.removeRow(r)
+
+    def _save(self) -> None:
+        for key, meta in PLATFORM_META.items():
+            if key == "manual":
+                continue
+            self.config.set_enabled(key, self.enable_checks[key].isChecked())
+            for field, _ in meta["credential_fields"]:
+                text = self.field_inputs[key][field].text().strip()
+                if text:
+                    self.config.set_credential(key, field, text)
+            if key == "volc":
+                self.config.platform_cfg(key)["action"] = (
+                    "ListModelInferenceLimits"
+                    if self.volc_actions[key].currentIndex() == 1
+                    else "GetUsageDetails")
+
+        self.config.refresh_interval_minutes = self.interval_spin.value()
+
+        manual: dict[str, dict] = {}
+        for r in range(self.manual_table.rowCount()):
+            def cell(c: int) -> str:
+                it = self.manual_table.item(r, c)
+                return it.text().strip() if it else ""
+            name = cell(0)
+            if not name:
+                continue
+            try:
+                total = float(cell(1)) if cell(1) else 0.0
+                used = float(cell(2)) if cell(2) else 0.0
+            except ValueError:
+                QMessageBox.warning(self, "输入无效",
+                                    f"「{name}」的总量/已用必须是数字")
+                return
+            manual[name] = {
+                "total": total, "used": used,
+                "unit": cell(3), "note": cell(4),
+            }
+        self.config._data["manual"] = manual
+
+        try:
+            self.config.save()
+        except Exception as e:
+            QMessageBox.critical(self, "保存失败", str(e))
+            return
+        self.accept()
