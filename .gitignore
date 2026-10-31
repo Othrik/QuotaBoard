@@ -6,6 +6,7 @@ __pycache__/
 
 # 运行数据
 *.log
+build_pack_log.txt
 
 # 飞书文档临时资源
 doc-fetch-resources/
