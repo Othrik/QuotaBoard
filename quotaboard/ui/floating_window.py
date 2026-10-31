@@ -104,9 +104,12 @@ def _platform_logo(platform: str, size: int = 18) -> Optional[QLabel]:
         if not bp.isNull():
             base = _logo_effective_ratio(bp)
     # 面积对齐 scale；为免实心圆头像类图标缩得过小看不清，
-    # 采用半程对齐（压缩幅度减半），并保底 0.9（各图标落在 16-18px 区间）
+    # 采用半程对齐（压缩幅度减半），并保底 0.9（各图标落在 16-18px 区间）。
+    # 豆包使用用户裁剪的官方头像，直接与 ChatGPT 同尺寸显示（18px）。
     area_scale = (base / ratio) ** 0.5 if ratio > 0 else 1.0
     scale = max(0.9, 1.0 + (area_scale - 1.0) * 0.5)
+    if platform == "doubao":
+        scale = 1.0
     lab = QLabel()
     lab.setFixedSize(size, size)
     # 设备像素比感知：pixmap 按 dpr 放大渲染，QLabel 逻辑尺寸不变，高分屏下不糊
