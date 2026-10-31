@@ -17,6 +17,7 @@ tools/scan_*
 tools/test_*
 tools/*_out.txt
 tools/doubao_*
+tools/create_release.py
 tools/decrypt_doubao_cookies.py
 tools/parse_cache_urls.py
 tools/probe_js_api.py

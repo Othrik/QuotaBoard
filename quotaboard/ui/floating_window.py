@@ -251,7 +251,8 @@ class FloatingWindow(QWidget):
                 w.deleteLater()
 
         rows: list[QuotaResult] = []
-        for key in ("openai", "chatgpt_plus", "codex", "zhipu", "zhipu_member", "kimi", "volc"):
+        for key in ("openai", "chatgpt_plus", "codex", "doubao",
+                    "zhipu", "zhipu_member", "kimi", "volc"):
             r = self._results.get(key)
             if r is not None:
                 rows.append(r)
@@ -320,9 +321,15 @@ class FloatingWindow(QWidget):
             self.setMinimumHeight(0)
             self.setMaximumHeight(16777215)
             self.adjustSize()
+            self.collapse_btn.setText("−")
         else:
+            # 折叠态同样走 adjustSize：body 行已隐藏，窗口自适应为头部高度，
+            # 避免固定像素高度在高 DPI / 字体缩放下截断 header
             self.setFixedWidth(210)
-            self.setFixedHeight(46)
+            self.setMinimumHeight(0)
+            self.setMaximumHeight(16777215)
+            self.adjustSize()
+            self.collapse_btn.setText("+")
 
     # ---------- 折叠/展开 ----------
     def toggle(self) -> None:
