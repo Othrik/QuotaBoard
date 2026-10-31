@@ -35,6 +35,7 @@ PLATFORM_LOGO = {
     "zhipu": "zhipu.png",
     "zhipu_member": "zhipu.png",
     "kimi": "kimi.png",
+    "deepseek": "deepseek.png",
     "volc": "volc.png",
 }
 
@@ -217,16 +218,18 @@ class _Row(QFrame):
             val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             right.addWidget(val)
 
-            bar = QProgressBar()
-            bar.setFixedHeight(5)
-            bar.setTextVisible(False)
-            pct = int(round(result.percent)) if result.percent is not None else 0
-            bar.setRange(0, 100)
-            bar.setValue(max(0, min(100, pct)))
-            bar.setStyleSheet(
-                f"QProgressBar {{ background: #EEF0F2; border: none; border-radius: 3px; }}"
-                f"QProgressBar::chunk {{ background-color: {color}; border-radius: 3px; }}")
-            right.addWidget(bar)
+            # 无法计算百分比（percent=None，如积分/余额）时只显示数字，不画条带
+            if result.percent is not None:
+                bar = QProgressBar()
+                bar.setFixedHeight(5)
+                bar.setTextVisible(False)
+                pct = int(round(result.percent))
+                bar.setRange(0, 100)
+                bar.setValue(max(0, min(100, pct)))
+                bar.setStyleSheet(
+                    f"QProgressBar {{ background: #EEF0F2; border: none; border-radius: 3px; }}"
+                    f"QProgressBar::chunk {{ background-color: {color}; border-radius: 3px; }}")
+                right.addWidget(bar)
         lay.addLayout(right, 0)
 
         tip = (f"{result.label}\n剩余：{result.display}\n"
@@ -322,7 +325,7 @@ class FloatingWindow(QWidget):
 
         rows: list[QuotaResult] = []
         for key in ("openai", "chatgpt_plus", "codex", "doubao",
-                    "zhipu", "zhipu_member", "kimi", "volc"):
+                    "zhipu", "zhipu_member", "kimi", "deepseek", "volc"):
             r = self._results.get(key)
             if r is not None:
                 rows.append(r)

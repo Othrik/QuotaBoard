@@ -229,45 +229,19 @@ class ZhipuMemberProvider(Provider):
         if member is None:
             return self.err("响应未包含会员信息（接口可能已调整）")
 
-        level = str(member.get("level") or "").upper()
-        # 会员状态：新结构用 is_member + status；旧结构用 member_status
-        status = _num(member.get("member_status"))
-        if status is None:
-            status = _num(member.get("status"))
-        is_member = member.get("is_member")
-        percent = _pct(member.get("token_left_percent"))
+        # 积分：left_score 为 ×100 口径（如 2393848 代表 23938.48 积分）
         score = _num(member.get("left_score"))
-        expire_ts = _num(member.get("member_expiration_time"))
-        if not expire_ts or expire_ts <= 0:
-            expire_ts = _num(member.get("vip_expired_at"))
-        if not expire_ts or expire_ts <= 0:
-            expire_ts = _num(member.get("expired_at"))
+        if score is None:
+            return self.err("未解析到积分字段（left_score），接口可能已调整")
+        score = score / 100.0
 
-        # 会员状态：2=有效会员，3=已过期，其余非会员；新结构 is_member 优先
-        if is_member is True or status == 2:
-            status_text = "有效"
-        elif status == 3:
-            status_text = "已过期"
-        else:
-            status_text = "非会员"
-
-        if percent is None:
-            return self.err("未解析到剩余额度字段（token_left_percent），接口可能已调整")
-
-        note_parts = [f"{level} {status_text}" if level else status_text]
-        if expire_ts and expire_ts > 0:
-            import datetime
-            dt = datetime.datetime.fromtimestamp(expire_ts)
-            note_parts.append(f"{dt.year}-{dt.month:02d}-{dt.day:02d}到期")
-        if score is not None:
-            note_parts.append(f"积分{score:,.0f}")
-
+        # 用户要求：只显示积分剩余量数字，不画百分比条带，不显示会员/到期信息
         return QuotaResult(
             platform=self.key, label=self.label,
-            display=f"{percent:.0f}%",
-            available=None, used=None, total=None,
-            unit="", percent=percent, ok=True,
-            sub_note=" · ".join(note_parts),
+            display=f"积分{score:,.2f}",
+            available=score, used=None, total=None,
+            unit="", percent=None, ok=True,
+            sub_note="",
         )
 
     def debug_fetch(self) -> tuple[bool, str, object]:

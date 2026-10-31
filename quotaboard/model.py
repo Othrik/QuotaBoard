@@ -63,6 +63,10 @@ PLATFORM_META: dict[str, dict] = {
         "credential_fields": [("manual_token", "手动 Token（可选）")],
     },
     "kimi": {"label": "Kimi", "credential_fields": [("api_key", "API Key")]},
+    "deepseek": {
+        "label": "DeepSeek",
+        "credential_fields": [("api_key", "API Key")],
+    },
     "volc": {
         "label": "火山方舟",
         "credential_fields": [("ak", "Access Key"), ("sk", "Secret Key")],

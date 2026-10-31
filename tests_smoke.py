@@ -147,14 +147,14 @@ def test_zhipu_member_provider() -> None:
             return_value=payload):
         result = PROVIDERS["zhipu_member"]({}).fetch()
     assert result.ok, result.error
-    assert result.percent == 62.5
-    assert "62" in result.display
-    assert "VIP" in result.sub_note and "有效" in result.sub_note
-    assert "到期" in result.sub_note and "1,234" in result.sub_note
-    print(f"[OK] 智谱清言会员解析正确（{result.display}，"
-          f"{result.sub_note}，percent={result.percent}）")
+    # 积分 ×100 口径换算：1234 → 12.34；只显示积分，无百分比条带、无会员信息
+    assert result.display == "积分12.34", result.display
+    assert result.percent is None, result.percent
+    assert result.sub_note == "", result.sub_note
+    print(f"[OK] 智谱清言会员解析正确（{result.display}，percent={result.percent}，"
+          f"sub_note={result.sub_note!r}）")
 
-    # 2b) 新接口结构（result 直接是会员数据，百分比带 %，积分大数）
+    # 2b) 新接口结构（result 直接是会员数据，left_score 为 ×100 大数）
     payload_new = {
         "status": 0, "message": "success",
         "result": {
@@ -174,11 +174,12 @@ def test_zhipu_member_provider() -> None:
             return_value=payload_new):
         result = PROVIDERS["zhipu_member"]({}).fetch()
     assert result.ok, result.error
-    assert result.percent == 72.0
-    assert "非会员" in result.sub_note
-    assert "2,393,848" in result.sub_note  # 积分大数
-    assert "到期" in result.sub_note
-    print(f"[OK] 智谱清言新接口结构解析正确（{result.display}，{result.sub_note}）")
+    # 2393848 / 100 = 23938.48 → 显示 23,938.48；不再显示会员状态 / 到期
+    assert result.display == "积分23,938.48", result.display
+    assert result.percent is None and result.sub_note == "", (result.percent,
+                                                               result.sub_note)
+    print(f"[OK] 智谱清言新接口结构解析正确（{result.display}，"
+          f"percent={result.percent}，sub_note={result.sub_note!r}）")
 
     # 3) token 过期（HTTP 401）→ 明确提示
     import urllib.error
@@ -201,14 +202,14 @@ def test_zhipu_member_provider() -> None:
             mock.patch.object(zmp, "http_get_json", return_value=payload):
         result = PROVIDERS["zhipu_member"]({}).fetch()
     assert result.ok, result.error
-    assert result.percent == 62.5
+    assert result.display == "积分12.34", result.display
     print("[OK] 智谱清言客户端运行中（锁定）使用缓存 token 成功")
 
     # 5) 手动粘贴 token 优先于自动读取
     with mock.patch.object(zmp, "http_get_json", return_value=payload):
         result = PROVIDERS["zhipu_member"]({"manual_token": "manual-abc"}).fetch()
     assert result.ok, result.error
-    assert result.percent == 62.5
+    assert result.display == "积分12.34", result.display
     print("[OK] 智谱清言手动粘贴 token 路径")
 
 
@@ -327,6 +328,60 @@ def test_ui_color_rules() -> None:
     print("[OK] 颜色规则：≥75 绿、<30 红、中间黄，多窗口按周额度")
 
 
+def test_deepseek_provider() -> None:
+    from unittest import mock
+
+    from quotaboard.providers import PROVIDERS
+
+    # 1) 未配置 API Key → 明确错误
+    result = PROVIDERS["deepseek"]({}).fetch()
+    assert result.ok is False and "未配置" in result.error, result.error
+    print("[OK] DeepSeek 未配置 API Key 错误路径")
+
+    # 2) 余额解析：直接显示余额数字（¥100.00），percent=None 不画条带
+    payload = {
+        "is_available": True,
+        "balance_infos": [
+            {"currency": "CNY", "total_balance": "100.00",
+             "granted_balance": "0.00", "topped_up_balance": "100.00"},
+        ],
+    }
+    with mock.patch(
+            "quotaboard.providers.deepseek_provider.http_get_json",
+            return_value=payload):
+        result = PROVIDERS["deepseek"]({"api_key": "sk-test"}).fetch()
+    assert result.ok, result.error
+    assert result.display == "¥100.00", result.display
+    assert result.percent is None, result.percent
+    assert result.sub_note == "", result.sub_note
+    print(f"[OK] DeepSeek 余额解析正确（{result.display}，percent={result.percent}）")
+
+    # 3) 多币种余额 → 用「 · 」连接
+    payload_multi = {
+        "balance_infos": [
+            {"currency": "CNY", "total_balance": "12.34"},
+            {"currency": "USD", "total_balance": "5.00"},
+        ],
+    }
+    with mock.patch(
+            "quotaboard.providers.deepseek_provider.http_get_json",
+            return_value=payload_multi):
+        result = PROVIDERS["deepseek"]({"api_key": "sk-test"}).fetch()
+    assert result.ok and result.display == "¥12.34 · $5.00", result.display
+    print(f"[OK] DeepSeek 多币种余额连接正确（{result.display}）")
+
+    # 4) 401 → API Key 无效
+    import urllib.error
+    exc = urllib.error.HTTPError(
+        "https://api.deepseek.com/user/balance", 401, "Unauthorized", {}, None)
+    with mock.patch(
+            "quotaboard.providers.deepseek_provider.http_get_json",
+            side_effect=exc):
+        result = PROVIDERS["deepseek"]({"api_key": "sk-bad"}).fetch()
+    assert result.ok is False and "无效" in result.error, result.error
+    print("[OK] DeepSeek API Key 无效错误路径")
+
+
 if __name__ == "__main__":
     test_dpapi_roundtrip()
     test_config_read_write()
@@ -335,5 +390,6 @@ if __name__ == "__main__":
     test_codex_provider()
     test_zhipu_member_provider()
     test_doubao_provider()
+    test_deepseek_provider()
     test_ui_color_rules()
     print("\n全部冒烟测试通过。")

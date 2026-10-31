@@ -74,6 +74,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "zhipu": {"enabled": False, "api_key_enc": ""},
         "zhipu_member": {"enabled": False},
         "kimi": {"enabled": False, "api_key_enc": ""},
+        "deepseek": {"enabled": False, "api_key_enc": ""},
         "volc": {"enabled": False, "ak_enc": "", "sk_enc": ""},
     },
     "manual": {},   # {名称: {total, used, unit, note}}
