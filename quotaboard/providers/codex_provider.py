@@ -53,7 +53,7 @@ def _classify_error(message: str) -> str:
 
 class CodexProvider(Provider):
     key = "codex"
-    label = "ChatGPT 用量（5h/周）"
+    label = "ChatGPT"
 
     def __init__(self, cfg: dict) -> None:
         super().__init__(cfg)

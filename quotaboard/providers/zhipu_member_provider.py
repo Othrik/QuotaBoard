@@ -179,7 +179,7 @@ def extract_member(data) -> dict | None:
 
 class ZhipuMemberProvider(Provider):
     key = "zhipu_member"
-    label = "智谱清言会员"
+    label = "智谱清言"
 
     def fetch(self) -> QuotaResult:
         manual = str(self.cfg.get("manual_token", "") or "").strip()

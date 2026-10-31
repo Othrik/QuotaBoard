@@ -45,16 +45,20 @@ class QuotaResult:
 PLATFORM_META: dict[str, dict] = {
     "openai": {"label": "OpenAI", "credential_fields": [("api_key", "API Key")]},
     "chatgpt_plus": {
-        "label": "ChatGPT Plus（登录态）",
+        "label": "ChatGPT Plus",
         "credential_fields": [("session_token", "登录 Token")],
     },
     "codex": {
-        "label": "ChatGPT 用量（5h/周）",
+        "label": "ChatGPT",
         "credential_fields": [],
+    },
+    "doubao": {
+        "label": "豆包",
+        "credential_fields": [("manual_sessionid", "手动 sessionid（可选）")],
     },
     "zhipu": {"label": "智谱 GLM", "credential_fields": [("api_key", "API Key")]},
     "zhipu_member": {
-        "label": "智谱清言会员（登录态）",
+        "label": "智谱清言",
         "credential_fields": [("manual_token", "手动 Token（可选）")],
     },
     "kimi": {"label": "Kimi", "credential_fields": [("api_key", "API Key")]},
@@ -62,5 +66,5 @@ PLATFORM_META: dict[str, dict] = {
         "label": "火山方舟",
         "credential_fields": [("ak", "Access Key"), ("sk", "Secret Key")],
     },
-    "manual": {"label": "订阅类额度（手动）", "credential_fields": []},
+    "manual": {"label": "手动额度", "credential_fields": []},
 }

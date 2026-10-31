@@ -180,6 +180,79 @@ def test_zhipu_member_provider() -> None:
     print("[OK] 智谱清言手动粘贴 token 路径")
 
 
+def test_doubao_provider() -> None:
+    from unittest import mock
+
+    import quotaboard.providers.doubao_provider as dmp
+    from quotaboard.providers import PROVIDERS
+
+    payload = {
+        "code": 0, "msg": "",
+        "data": {
+            "current_subscription": {
+                "display": {"product_name": "个人订阅", "short_name": "标准套餐"},
+                "end_time": 1794491066517,
+            },
+            "window_limit_section": {
+                "window_limit_groups": [{
+                    "feature_group": "general",
+                    "window_limits": [
+                        {"window_type": 1, "used_percent": 53,
+                         "total_amount": "1,470", "used_amount": "792"},
+                        {"window_type": 2, "used_percent": 84,
+                         "total_amount": "4,200", "used_amount": "3,537"},
+                    ],
+                }],
+            },
+            "incentive_quota_section": {
+                "window_limit_groups": [{
+                    "feature_group": "doubao_activity_reward_quota",
+                    "window_limits": [
+                        {"window_type": 3, "used_percent": 93,
+                         "total_amount": "2,700", "used_amount": "2,512"},
+                    ],
+                }],
+            },
+            "member_info": {"hasActiveSubscription": True},
+        },
+    }
+
+    # 1) 无登录态 → 明确错误
+    with mock.patch.object(dmp, "_scan_session",
+                           return_value=(False, "未检测到豆包客户端登录态", {})):
+        result = PROVIDERS["doubao"]({}).fetch()
+    assert result.ok is False and "未检测到" in result.error, result.error
+    print("[OK] 豆包无客户端登录态错误路径")
+
+    # 2) 成功解析（mock 凭据 + 响应，不发起真实请求）
+    cred = {"sessionid": "27f4" + "0" * 28, "multi_sids": "1%3A2"}
+    with mock.patch.object(dmp, "_scan_session", return_value=(True, "", cred)), \
+            mock.patch.object(dmp, "http_post_json", return_value=payload):
+        result = PROVIDERS["doubao"]({}).fetch()
+    assert result.ok, result.error
+    assert result.display == "5h 47% · 周 16%", result.display
+    assert result.percent == 16.0, result.percent
+    assert result.metrics and len(result.metrics) == 2, result.metrics
+    assert result.metrics[0]["label"] == "5h" and result.metrics[0]["percent"] == 47
+    assert result.metrics[1]["label"] == "周" and result.metrics[1]["percent"] == 16
+    assert "个人订阅" in result.sub_note and "到期" in result.sub_note
+    assert "活动赠送" in result.sub_note and "6%" not in result.sub_note
+    assert "7%" in result.sub_note  # 活动赠送剩余 100-93=7
+    print(f"[OK] 豆包订阅解析正确（{result.display}，percent={result.percent}，"
+          f"metrics={[m['label'] for m in result.metrics]}，note={result.sub_note}）")
+
+    # 3) 登录态失效（HTTP 401）→ 明确提示
+    import urllib.error
+    exc = urllib.error.HTTPError(
+        "https://www.doubao.com/alice/commerce/sale/subscription/quota/summary/",
+        401, "Unauthorized", {}, None)
+    with mock.patch.object(dmp, "_scan_session", return_value=(True, "", cred)), \
+            mock.patch.object(dmp, "http_post_json", side_effect=exc):
+        result = PROVIDERS["doubao"]({}).fetch()
+    assert result.ok is False and "登录态已失效" in result.error, result.error
+    print("[OK] 豆包登录态失效错误路径")
+
+
 if __name__ == "__main__":
     test_dpapi_roundtrip()
     test_config_read_write()
@@ -187,4 +260,5 @@ if __name__ == "__main__":
     test_volc_signature_structure()
     test_codex_provider()
     test_zhipu_member_provider()
+    test_doubao_provider()
     print("\n全部冒烟测试通过。")

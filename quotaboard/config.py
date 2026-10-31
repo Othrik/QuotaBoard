@@ -70,6 +70,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "openai": {"enabled": False, "api_key_enc": ""},
         "chatgpt_plus": {"enabled": False, "session_token_enc": ""},
         "codex": {"enabled": False},
+        "doubao": {"enabled": False},
         "zhipu": {"enabled": False, "api_key_enc": ""},
         "zhipu_member": {"enabled": False},
         "kimi": {"enabled": False, "api_key_enc": ""},

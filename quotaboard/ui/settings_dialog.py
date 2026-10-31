@@ -100,6 +100,18 @@ class SettingsDialog(QDialog):
                     " border-radius: 6px; padding: 6px 8px;")
                 v.addWidget(guide)
 
+            if key == "doubao":
+                guide = QLabel(
+                    "自动检测豆包客户端的登录会话并读取订阅额度（5 小时 / 周"
+                    "双窗口 + 活动赠送），读取成功后加密缓存，客户端关闭也能"
+                    "显示。首次使用请先打开豆包客户端并登录；接口失效时可在"
+                    "下方手动粘贴 sessionid。")
+                guide.setWordWrap(True)
+                guide.setStyleSheet(
+                    "font-size: 11px; color: #646A73; background: #F5F7FA;"
+                    " border-radius: 6px; padding: 6px 8px;")
+                v.addWidget(guide)
+
             inputs: dict[str, QLineEdit] = {}
             for field, _label in meta["credential_fields"]:
                 row = QHBoxLayout()
@@ -141,7 +153,7 @@ class SettingsDialog(QDialog):
         clay.addLayout(form)
 
         # ---- 手动额度 ----
-        mtitle = QLabel("订阅类额度（无公开接口，手动维护）")
+        mtitle = QLabel("手动额度（豆包等无公开接口的平台，手动维护）")
         mtitle.setStyleSheet("font-size: 14px; font-weight: 600;")
         clay.addWidget(mtitle)
         self.manual_table = QTableWidget(0, 5)
