@@ -27,7 +27,7 @@ try:
     w._results = {
         "zhipu_member": QuotaResult(
             platform="zhipu_member", label="智谱清言",
-            display="积分23,938.48", available=23938.48, percent=None, ok=True,
+            display="积分 23,938.48", available=23938.48, percent=None, ok=True,
             sub_note=""),
         "deepseek": QuotaResult(
             platform="deepseek", label="DeepSeek",
@@ -54,7 +54,7 @@ try:
     joined_all = " | ".join(
         t for row in rows for t in
         [lab.text() for lab in row.findChildren(QLabel)])
-    assert "积分23,938.48" in joined_all, joined_all
+    assert "积分 23,938.48" in joined_all, joined_all
     assert "¥100.00" in joined_all, joined_all
     print("GUI TEXT SMOKE OK（智谱积分 / DeepSeek 余额均只显示数字、无条带）")
 except Exception:

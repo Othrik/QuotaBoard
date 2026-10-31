@@ -238,7 +238,7 @@ class ZhipuMemberProvider(Provider):
         # 用户要求：只显示积分剩余量数字，不画百分比条带，不显示会员/到期信息
         return QuotaResult(
             platform=self.key, label=self.label,
-            display=f"积分{score:,.2f}",
+            display=f"积分 {score:,.2f}",
             available=score, used=None, total=None,
             unit="", percent=None, ok=True,
             sub_note="",

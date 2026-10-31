@@ -59,7 +59,7 @@ class DeepSeekProvider(Provider):
         if not isinstance(infos, list) or not infos:
             return self.err(f"响应缺少余额字段：{str(data)[:120]}")
 
-        # 每个币种一行余额，多个币种用「 · 」连接
+        # 每个币种一行余额，多个币种用「 · 」连接；负号置于币种符号前（如 -¥1.58）
         parts = []
         for info in infos:
             total = info.get("total_balance")
@@ -68,7 +68,9 @@ class DeepSeekProvider(Provider):
             currency = str(info.get("currency") or "USD").upper()
             symbol = _CURRENCY_SYMBOL.get(currency, f"{currency} ")
             try:
-                parts.append(f"{symbol}{float(total):,.2f}")
+                value = float(total)
+                sign = "-" if value < 0 else ""
+                parts.append(f"{sign}{symbol}{abs(value):,.2f}")
             except (TypeError, ValueError):
                 parts.append(f"{symbol}{total}")
         if not parts:

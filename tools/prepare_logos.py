@@ -1,13 +1,14 @@
-"""Logo 统一处理：等比缩放至 64x64 画布内（居中，不变形）+ 圆角遮罩（radius=12）。
+"""Logo 统一处理：等比缩放至 128x128 画布内（居中，不变形）+ 圆角遮罩（radius=24）。
 
+128px 高分辨率源 + 圆角，适配 2x 高分屏下 18px 行首图标，避免模糊。
 输入 assets/logo/*.png（原始下载/转换后的 PNG），输出覆盖同名文件（圆角版）。
 """
 from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent / "assets" / "logo"
-SIZE = 64
-RADIUS = 12
+SIZE = 128
+RADIUS = 24
 
 
 def fit_paste(base: Image.Image, src: Image.Image) -> None:

@@ -148,7 +148,7 @@ def test_zhipu_member_provider() -> None:
         result = PROVIDERS["zhipu_member"]({}).fetch()
     assert result.ok, result.error
     # 积分 ×100 口径换算：1234 → 12.34；只显示积分，无百分比条带、无会员信息
-    assert result.display == "积分12.34", result.display
+    assert result.display == "积分 12.34", result.display
     assert result.percent is None, result.percent
     assert result.sub_note == "", result.sub_note
     print(f"[OK] 智谱清言会员解析正确（{result.display}，percent={result.percent}，"
@@ -175,7 +175,7 @@ def test_zhipu_member_provider() -> None:
         result = PROVIDERS["zhipu_member"]({}).fetch()
     assert result.ok, result.error
     # 2393848 / 100 = 23938.48 → 显示 23,938.48；不再显示会员状态 / 到期
-    assert result.display == "积分23,938.48", result.display
+    assert result.display == "积分 23,938.48", result.display
     assert result.percent is None and result.sub_note == "", (result.percent,
                                                                result.sub_note)
     print(f"[OK] 智谱清言新接口结构解析正确（{result.display}，"
@@ -202,14 +202,14 @@ def test_zhipu_member_provider() -> None:
             mock.patch.object(zmp, "http_get_json", return_value=payload):
         result = PROVIDERS["zhipu_member"]({}).fetch()
     assert result.ok, result.error
-    assert result.display == "积分12.34", result.display
+    assert result.display == "积分 12.34", result.display
     print("[OK] 智谱清言客户端运行中（锁定）使用缓存 token 成功")
 
     # 5) 手动粘贴 token 优先于自动读取
     with mock.patch.object(zmp, "http_get_json", return_value=payload):
         result = PROVIDERS["zhipu_member"]({"manual_token": "manual-abc"}).fetch()
     assert result.ok, result.error
-    assert result.display == "积分12.34", result.display
+    assert result.display == "积分 12.34", result.display
     print("[OK] 智谱清言手动粘贴 token 路径")
 
 
@@ -356,18 +356,18 @@ def test_deepseek_provider() -> None:
     assert result.sub_note == "", result.sub_note
     print(f"[OK] DeepSeek 余额解析正确（{result.display}，percent={result.percent}）")
 
-    # 3) 多币种余额 → 用「 · 」连接
+    # 3) 多币种余额 → 用「 · 」连接；负数符号在币种符号前
     payload_multi = {
         "balance_infos": [
             {"currency": "CNY", "total_balance": "12.34"},
-            {"currency": "USD", "total_balance": "5.00"},
+            {"currency": "USD", "total_balance": "-1.58"},
         ],
     }
     with mock.patch(
             "quotaboard.providers.deepseek_provider.http_get_json",
             return_value=payload_multi):
         result = PROVIDERS["deepseek"]({"api_key": "sk-test"}).fetch()
-    assert result.ok and result.display == "¥12.34 · $5.00", result.display
+    assert result.ok and result.display == "¥12.34 · -$1.58", result.display
     print(f"[OK] DeepSeek 多币种余额连接正确（{result.display}）")
 
     # 4) 401 → API Key 无效

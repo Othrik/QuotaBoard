@@ -57,8 +57,8 @@ def _pct_color(pct: float) -> str:
     return C_GREEN
 
 
-def _platform_logo(platform: str) -> Optional[QLabel]:
-    """返回平台 Logo 小图（18px）；无 Logo 时返回 None。"""
+def _platform_logo(platform: str, size: int = 18) -> Optional[QLabel]:
+    """返回平台 Logo 小图（默认 18px）；无 Logo 时返回 None。"""
     name = PLATFORM_LOGO.get(platform)
     if not name:
         return None
@@ -69,9 +69,9 @@ def _platform_logo(platform: str) -> Optional[QLabel]:
     if pix.isNull():
         return None
     lab = QLabel()
-    lab.setFixedSize(18, 18)
+    lab.setFixedSize(size, size)
     lab.setPixmap(pix.scaled(
-        18, 18, Qt.AspectRatioMode.KeepAspectRatio,
+        size, size, Qt.AspectRatioMode.KeepAspectRatio,
         Qt.TransformationMode.SmoothTransformation))
     return lab
 
@@ -304,6 +304,10 @@ class FloatingWindow(QWidget):
         self.head_title.setStyleSheet(f"font-size: 15px; font-weight: 600; color: {TEXT_MAIN};")
         hlay.addWidget(self.head_title)
         hlay.addStretch(1)
+        # 头部右侧：正在使用的 AI 图标（折叠态可一眼看到在用哪些平台）
+        self.head_logos = QHBoxLayout()
+        self.head_logos.setSpacing(2)
+        hlay.addLayout(self.head_logos)
         self.head_summary = QLabel("")
         self.head_summary.setStyleSheet(f"font-size: 12px; color: {TEXT_SUB};")
         hlay.addWidget(self.head_summary)
@@ -373,6 +377,16 @@ class FloatingWindow(QWidget):
 
         # 头部不再显示「N 个偏低/告警/正常」摘要（用户要求移除）
         self.head_summary.setText("")
+        # 头部右侧：正在使用的 AI 图标（按展示顺序，取有 Logo 的平台）
+        while self.head_logos.count():
+            item = self.head_logos.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+        for r in rows:
+            logo = _platform_logo(r.platform, size=16)
+            if logo is not None:
+                self.head_logos.addWidget(logo)
 
         self.update_size()
 
