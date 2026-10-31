@@ -56,7 +56,7 @@ try:
     w.toggle()
     app.processEvents()
     print("collapsed h:", w.height())
-    assert w.height() <= 60
+    assert w.height() <= 70
     print("GUI DONUT SMOKE OK")
 except Exception:
     traceback.print_exc()

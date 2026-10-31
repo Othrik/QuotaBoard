@@ -267,16 +267,14 @@ def test_doubao_provider() -> None:
     assert result.ok, result.error
     assert result.display == "5h 47% · 周 16%", result.display
     assert result.percent == 16.0, result.percent
-    # 3 个环形图：5h / 周 / 活动赠送
-    assert result.metrics and len(result.metrics) == 3, result.metrics
+    # 2 个环形图：5h / 周（活动赠送不显示）
+    assert result.metrics and len(result.metrics) == 2, result.metrics
     assert result.metrics[0]["label"] == "5h" and result.metrics[0]["percent"] == 47
     assert result.metrics[1]["label"] == "周" and result.metrics[1]["percent"] == 16
-    assert result.metrics[2]["label"] == "活动赠送" and result.metrics[2]["percent"] == 7
-    # 各窗口显示重置时间：5h 时分，周与活动赠送含日期
+    # 各窗口显示重置时间：5h 时分，周含日期
     assert re.search(r"5h重置 \d{2}:\d{2}", result.sub_note), result.sub_note
     assert re.search(r"周重置 \d{2}-\d{2} \d{2}:\d{2}", result.sub_note), result.sub_note
     assert "到期" in result.sub_note
-    assert "活动赠送" in result.metrics[2]["note"] and "7%" in result.metrics[2]["note"]
     print(f"[OK] 豆包订阅解析正确（{result.display}，percent={result.percent}，"
           f"metrics={[m['label'] for m in result.metrics]}，note={result.sub_note}）")
 

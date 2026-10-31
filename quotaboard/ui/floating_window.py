@@ -1,6 +1,9 @@
 """悬浮窗主界面：无边框、置顶、半透明、可拖动、折叠/展开。"""
 from __future__ import annotations
 
+import os
+import sys
+from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import QPoint, QRectF, Qt, Signal
@@ -22,6 +25,45 @@ C_GRAY = "#8A9099"
 TEXT_MAIN = "#1F2329"
 TEXT_SUB = "#646A73"
 SNAP_THRESHOLD = 24  # 距屏幕边缘多少像素内触发吸顶吸附
+
+# 平台 → 行首 Logo 文件（assets/logo/ 下，随 exe 一起打包）
+PLATFORM_LOGO = {
+    "openai": "openai.png",
+    "chatgpt_plus": "chatgpt.png",
+    "codex": "chatgpt.png",
+    "doubao": "doubao.png",
+    "zhipu": "zhipu.png",
+    "zhipu_member": "zhipu.png",
+    "kimi": "kimi.png",
+    "volc": "volc.png",
+}
+
+
+def _resource_path(rel: str) -> str:
+    """定位资源文件：打包后取 sys._MEIPASS，开发时取项目根目录。"""
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        return str(Path(base) / rel)
+    return str(Path(__file__).resolve().parent.parent.parent / rel)
+
+
+def _platform_logo(platform: str) -> Optional[QLabel]:
+    """返回平台 Logo 小图（18px）；无 Logo 时返回 None。"""
+    name = PLATFORM_LOGO.get(platform)
+    if not name:
+        return None
+    path = _resource_path(f"assets/logo/{name}")
+    if not os.path.isfile(path):
+        return None
+    pix = QPixmap(path)
+    if pix.isNull():
+        return None
+    lab = QLabel()
+    lab.setFixedSize(18, 18)
+    lab.setPixmap(pix.scaled(
+        18, 18, Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation))
+    return lab
 
 
 def _row_level(result: QuotaResult) -> str:
@@ -133,8 +175,10 @@ class _Row(QFrame):
         color = C_GREEN if level == "ok" else (C_YELLOW if level == "warn" else C_RED)
         if manual:
             color = C_BLUE
-        self.dot = _StatusDot(color)
-        lay.addWidget(self.dot)
+        # 行首：平台 Logo（无 Logo 的平台不加，替代原状态色点）
+        logo = _platform_logo(result.platform)
+        if logo is not None:
+            lay.addWidget(logo)
 
         left = QVBoxLayout()
         left.setSpacing(2)

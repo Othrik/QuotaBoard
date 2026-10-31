@@ -344,7 +344,8 @@ class DoubaoProvider(Provider):
                 return ""
 
         # 每个窗口：{label, percent(剩余), note(重置时间)}
-        # 5h 显示时分（如「5h重置 21:10」）；周与活动赠送显示日期（如「周重置 11-03 21:04」）
+        # 5h 显示时分（如「5h重置 21:10」）；周显示日期（如「周重置 11-03 21:04」）
+        # 活动赠送（window_type=3）不在悬浮窗显示
         metrics = []
         for w in windows:
             if w["pct"] is None:
@@ -356,16 +357,6 @@ class DoubaoProvider(Provider):
                 "percent": 100 - w["pct"],
                 "note": f"{w['label']}重置 {reset}" if reset
                         else f"{w['label']} {w['used']} / {w['total']}",
-            })
-        if bonus_pct is not None:
-            bfmt = "%m-%d" if bonus_end else ""
-            bend = _fmt_reset(bonus_end, bfmt)
-            metrics.append({
-                "label": "活动赠送",
-                "percent": 100 - bonus_pct,
-                "note": f"活动赠送 {100 - bonus_pct:.0f}%"
-                        f"（{bonus_used} / {bonus_total}）"
-                        + (f" · {bend}截止" if bend else ""),
             })
 
         # ---- 订阅信息 ----
