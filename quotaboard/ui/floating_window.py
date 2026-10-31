@@ -156,10 +156,13 @@ class _Row(QFrame):
             right.addWidget(bar)
         lay.addLayout(right, 0)
 
-        self.setToolTip(
-            f"{result.label}\n剩余：{result.display}\n"
-            f"更新时间：{result.updated_at}"
-            + (f"\n错误：{result.error}" if result.error else ""))
+        tip = (f"{result.label}\n剩余：{result.display}\n"
+               f"更新时间：{result.updated_at}")
+        if result.sub_note:
+            tip += f"\n{result.sub_note}"
+        if result.error:
+            tip += f"\n错误：{result.error}"
+        self.setToolTip(tip)
 
 
 class FloatingWindow(QWidget):
@@ -204,7 +207,7 @@ class FloatingWindow(QWidget):
         self.card_lay.setContentsMargins(0, 0, 0, 0)
         self.card_lay.setSpacing(6)
 
-        # 头部（可点击收起）
+        # 头部（可点击收起/展开）
         self.header = QWidget(self.card)
         self.header.setObjectName("header")
         self.header.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -219,11 +222,6 @@ class FloatingWindow(QWidget):
         self.head_summary = QLabel("")
         self.head_summary.setStyleSheet(f"font-size: 12px; color: {TEXT_SUB};")
         hlay.addWidget(self.head_summary)
-        self.collapse_btn = QLabel("−")
-        self.collapse_btn.setStyleSheet(
-            f"font-size: 16px; color: {TEXT_SUB}; padding: 0 6px;")
-        self.collapse_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        hlay.addWidget(self.collapse_btn)
         self.card_lay.addWidget(self.header)
 
         # 内容区
@@ -322,7 +320,6 @@ class FloatingWindow(QWidget):
             self.setMinimumHeight(0)
             self.setMaximumHeight(16777215)
             self.adjustSize()
-            self.collapse_btn.setText("−")
         else:
             # 折叠态同样走 adjustSize：body 行已隐藏，窗口自适应为头部高度，
             # 避免固定像素高度在高 DPI / 字体缩放下截断 header
@@ -330,7 +327,6 @@ class FloatingWindow(QWidget):
             self.setMinimumHeight(0)
             self.setMaximumHeight(16777215)
             self.adjustSize()
-            self.collapse_btn.setText("+")
 
     # ---------- 折叠/展开 ----------
     def toggle(self) -> None:
@@ -373,10 +369,11 @@ class FloatingWindow(QWidget):
     def mouseReleaseEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             if not self._moved:
-                # 点击头部/折叠按钮：折叠态切换；展开态点头部收起
-                if not self.expanded:
-                    self.toggle()
-                elif self.collapse_btn.underMouse() or self.header.underMouse():
+                # 点击头部区域：折叠态展开；展开态收起（无 +/- 按钮，直接点击切换）。
+                # 折叠态下整个窗口即头部，点击任意位置均展开。
+                in_header = (self.expanded
+                             and event.position().y() <= self.header.height())
+                if not self.expanded or in_header:
                     self.toggle()
             else:
                 # 拖动结束：靠近屏幕边缘时吸顶贴边

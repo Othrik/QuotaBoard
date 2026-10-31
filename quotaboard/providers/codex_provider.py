@@ -60,11 +60,12 @@ class CodexProvider(Provider):
         self.cmd: list[str] | None = cfg.get("cmd")  # 测试时可注入模拟进程
 
     def _spawn(self) -> subprocess.Popen:
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # 后台运行，不弹终端
         if self.cmd:
             return subprocess.Popen(
                 self.cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
-                errors="replace")
+                errors="replace", creationflags=flags)
         codex = self._find_codex()
         if not codex:
             raise FileNotFoundError(
@@ -75,12 +76,12 @@ class CodexProvider(Provider):
                 ["cmd", "/c", "codex app-server --stdio -c analytics.enabled=false"],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
-                errors="replace")
+                errors="replace", creationflags=flags)
         return subprocess.Popen(
             [codex, "app-server", "--stdio", "-c", "analytics.enabled=false"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
-            errors="replace")
+            errors="replace", creationflags=flags)
 
     @staticmethod
     def _find_codex() -> str | None:
@@ -266,10 +267,12 @@ class CodexProvider(Provider):
         for name, w in (("5h", short), ("周", long)):
             if w:
                 local = datetime.fromtimestamp(w["resets"])
+                # 5h 窗口显示时分；周窗口显示日期+时分（如「周重置 11-03 20:01」）
+                fmt = "%m-%d %H:%M" if name == "周" else "%H:%M"
                 metrics.append({
                     "label": name,
                     "percent": 100 - w["used"],
-                    "note": f"{name}重置 {local.strftime('%H:%M')}",
+                    "note": f"{name}重置 {local.strftime(fmt)}",
                 })
 
         notes = [m["note"] for m in metrics]

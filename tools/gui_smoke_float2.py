@@ -90,14 +90,12 @@ try:
     print("expanded w/h:", w.width(), w.height())
     assert w.width() == 330
 
-    # 折叠态：行隐藏、高度自适应（<=70）、按钮变为 +
+    # 折叠态：行隐藏、高度自适应（<=70）
     w.toggle()
     app.processEvents()
     print("collapsed w/h:", w.width(), w.height())
-    print("collapse_btn text:", w.collapse_btn.text())
     assert w.width() == 210
     assert w.height() <= 70, f"折叠高度 {w.height()} 应 <=70"
-    assert w.collapse_btn.text() == "+"
     hidden = []
     for i in range(w.body.count()):
         row = w.body.itemAt(i).widget()
@@ -105,18 +103,42 @@ try:
             hidden.append(row.isVisible())
     assert not any(hidden), f"折叠态行应全部隐藏，实际 {hidden}"
 
-    # 再展开：恢复正常
-    w.toggle()
+    # 折叠态点击头部 → 展开（无 +/- 按钮，直接点击切换）
+    from PySide6.QtGui import QMouseEvent
+    from PySide6.QtCore import QPointF, QEvent, Qt
+    hc = w.header.rect().center()
+    hg = w.header.mapToGlobal(hc)
+    ev_p = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(hc),
+                       QPointF(hg), Qt.MouseButton.LeftButton,
+                       Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
+    ev_r = QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(hc),
+                       QPointF(hg), Qt.MouseButton.LeftButton,
+                       Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
+    w.mousePressEvent(ev_p)
+    w.mouseReleaseEvent(ev_r)
     app.processEvents()
     print("re-expanded w/h:", w.width(), w.height())
-    assert w.collapse_btn.text() == "−"
-    assert w.width() == 330
+    assert w.width() == 330, f"点击头部应展开，实际宽 {w.width()}"
     visible = []
     for i in range(w.body.count()):
         row = w.body.itemAt(i).widget()
         if row is not None:
             visible.append(row.isVisible())
     assert all(visible), f"展开态行应全部可见，实际 {visible}"
+    assert w.expanded is True
+
+    # 展开态点击头部 → 收起
+    ev_p2 = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(hc),
+                        QPointF(hg), Qt.MouseButton.LeftButton,
+                        Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
+    ev_r2 = QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(hc),
+                        QPointF(hg), Qt.MouseButton.LeftButton,
+                        Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
+    w.mousePressEvent(ev_p2)
+    w.mouseReleaseEvent(ev_r2)
+    app.processEvents()
+    print("collapsed again w/h:", w.width(), w.height())
+    assert w.width() == 210 and w.expanded is False
 
     print("GUI FLOAT SMOKE OK")
 except Exception:

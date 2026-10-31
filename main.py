@@ -5,16 +5,34 @@
 """
 from __future__ import annotations
 
+import os
 import sys
 
+from PySide6.QtCore import QSharedMemory
 from PySide6.QtWidgets import QApplication, QDialog
 
 from quotaboard.config import Config
 from quotaboard.scheduler import Scheduler
 from quotaboard.ui import FloatingWindow, SettingsDialog, TrayIcon
 
+SHARED_MEM_KEY = "QuotaBoard_single_instance"
+
+
+def _acquire_single_instance() -> QSharedMemory | None:
+    """单实例：共享内存已存在说明已有实例在运行，直接退出。
+    共享内存在进程退出/被杀时由系统自动释放，不会残留锁。"""
+    shm = QSharedMemory(SHARED_MEM_KEY)
+    if not shm.create(1):
+        return None
+    return shm
+
 
 def main() -> int:
+    shm = _acquire_single_instance()
+    if shm is None:
+        print("QuotaBoard 已在运行，本实例退出。")
+        return 0
+
     app = QApplication(sys.argv)
     app.setApplicationName("QuotaBoard")
     app.setQuitOnLastWindowClosed(False)
@@ -46,7 +64,10 @@ def main() -> int:
     scheduler.refresh_all()
     tray.show()
 
-    return app.exec()
+    code = app.exec()
+    if shm is not None:
+        shm.detach()
+    return code
 
 
 if __name__ == "__main__":

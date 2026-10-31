@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -101,6 +102,11 @@ def test_codex_provider() -> None:
     assert result.metrics and len(result.metrics) == 2, result.metrics
     assert result.metrics[0]["label"] == "5h" and result.metrics[0]["percent"] == 62
     assert result.metrics[1]["label"] == "周" and result.metrics[1]["percent"] == 38
+    # 周窗口重置显示日期（MM-DD HH:MM），5h 窗口显示时分
+    assert re.search(r"\d{2}-\d{2} \d{2}:\d{2}", result.metrics[1]["note"]), \
+        f"周重置应含日期：{result.metrics[1]['note']}"
+    assert re.search(r"\d{2}:\d{2}", result.metrics[0]["note"]), \
+        f"5h重置应含时间：{result.metrics[0]['note']}"
     print(f"[OK] codex 模拟链路解析正确（{result.display}，percent={result.percent}，"
           f"metrics={[m['label'] for m in result.metrics]}）")
 
@@ -198,9 +204,11 @@ def test_doubao_provider() -> None:
                     "feature_group": "general",
                     "window_limits": [
                         {"window_type": 1, "used_percent": 53,
-                         "total_amount": "1,470", "used_amount": "792"},
+                         "total_amount": "1,470", "used_amount": "792",
+                         "end_time": 1793466602516},
                         {"window_type": 2, "used_percent": 84,
-                         "total_amount": "4,200", "used_amount": "3,537"},
+                         "total_amount": "4,200", "used_amount": "3,537",
+                         "end_time": 1793819061007},
                     ],
                 }],
             },
@@ -209,7 +217,8 @@ def test_doubao_provider() -> None:
                     "feature_group": "doubao_activity_reward_quota",
                     "window_limits": [
                         {"window_type": 3, "used_percent": 93,
-                         "total_amount": "2,700", "used_amount": "2,512"},
+                         "total_amount": "2,700", "used_amount": "2,512",
+                         "end_time": 1795160465920},
                     ],
                 }],
             },
@@ -232,12 +241,16 @@ def test_doubao_provider() -> None:
     assert result.ok, result.error
     assert result.display == "5h 47% · 周 16%", result.display
     assert result.percent == 16.0, result.percent
-    assert result.metrics and len(result.metrics) == 2, result.metrics
+    # 3 个环形图：5h / 周 / 活动赠送
+    assert result.metrics and len(result.metrics) == 3, result.metrics
     assert result.metrics[0]["label"] == "5h" and result.metrics[0]["percent"] == 47
     assert result.metrics[1]["label"] == "周" and result.metrics[1]["percent"] == 16
-    assert "个人订阅" in result.sub_note and "到期" in result.sub_note
-    assert "活动赠送" in result.sub_note and "6%" not in result.sub_note
-    assert "7%" in result.sub_note  # 活动赠送剩余 100-93=7
+    assert result.metrics[2]["label"] == "活动赠送" and result.metrics[2]["percent"] == 7
+    # 各窗口显示重置时间：5h 时分，周与活动赠送含日期
+    assert re.search(r"5h重置 \d{2}:\d{2}", result.sub_note), result.sub_note
+    assert re.search(r"周重置 \d{2}-\d{2} \d{2}:\d{2}", result.sub_note), result.sub_note
+    assert "到期" in result.sub_note
+    assert "活动赠送" in result.metrics[2]["note"] and "7%" in result.metrics[2]["note"]
     print(f"[OK] 豆包订阅解析正确（{result.display}，percent={result.percent}，"
           f"metrics={[m['label'] for m in result.metrics]}，note={result.sub_note}）")
 

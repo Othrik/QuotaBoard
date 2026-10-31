@@ -291,7 +291,7 @@ class DoubaoProvider(Provider):
             return self.err("响应缺少 data 字段")
 
         # ---- 提取额度窗口 ----
-        windows: list[dict] = []  # (label, used_percent, total, used)
+        windows: list[dict] = []  # (label, used_percent, total, used, end_ts)
         section = payload.get("window_limit_section") or {}
         groups = section.get("window_limit_groups") or []
         for g in groups:
@@ -305,14 +305,16 @@ class DoubaoProvider(Provider):
                 if wtp == 1:
                     windows.append({"label": "5h", "pct": pct,
                                     "total": _fmt_amount(w.get("total_amount")),
-                                    "used": _fmt_amount(w.get("used_amount"))})
+                                    "used": _fmt_amount(w.get("used_amount")),
+                                    "end": _num(w.get("end_time"))})
                 elif wtp == 2:
                     windows.append({"label": "周", "pct": pct,
                                     "total": _fmt_amount(w.get("total_amount")),
-                                    "used": _fmt_amount(w.get("used_amount"))})
+                                    "used": _fmt_amount(w.get("used_amount")),
+                                    "end": _num(w.get("end_time"))})
 
         # 活动赠送额度（window_type=3）
-        bonus_pct = bonus_total = bonus_used = None
+        bonus_pct = bonus_total = bonus_used = bonus_end = None
         bonus_section = payload.get("incentive_quota_section") or {}
         for g in bonus_section.get("window_limit_groups") or []:
             if not isinstance(g, dict):
@@ -322,6 +324,7 @@ class DoubaoProvider(Provider):
                     bonus_pct = _num(w.get("used_percent"))
                     bonus_total = _fmt_amount(w.get("total_amount"))
                     bonus_used = _fmt_amount(w.get("used_amount"))
+                    bonus_end = _num(w.get("end_time"))
 
         if not windows:
             return self.err("响应未包含有效额度窗口（接口可能已调整）")
@@ -332,26 +335,55 @@ class DoubaoProvider(Provider):
         remaining = [100 - w["pct"] for w in windows if w["pct"] is not None]
         percent = min(remaining) if remaining else None
 
-        metrics = [{"label": w["label"], "percent": 100 - w["pct"],
-                    "note": f"{w['label']} {w['used']} / {w['total']}"}
-                   for w in windows if w["pct"] is not None]
+        def _fmt_reset(ts, fmt: str) -> str:
+            import datetime
+            try:
+                dt = datetime.datetime.fromtimestamp(ts / 1000)
+                return dt.strftime(fmt)
+            except (TypeError, ValueError, OSError):
+                return ""
+
+        # 每个窗口：{label, percent(剩余), note(重置时间)}
+        # 5h 显示时分（如「5h重置 21:10」）；周与活动赠送显示日期（如「周重置 11-03 21:04」）
+        metrics = []
+        for w in windows:
+            if w["pct"] is None:
+                continue
+            fmt = "%m-%d %H:%M" if w["label"] == "周" else "%H:%M"
+            reset = _fmt_reset(w["end"], fmt)
+            metrics.append({
+                "label": w["label"],
+                "percent": 100 - w["pct"],
+                "note": f"{w['label']}重置 {reset}" if reset
+                        else f"{w['label']} {w['used']} / {w['total']}",
+            })
+        if bonus_pct is not None:
+            bfmt = "%m-%d" if bonus_end else ""
+            bend = _fmt_reset(bonus_end, bfmt)
+            metrics.append({
+                "label": "活动赠送",
+                "percent": 100 - bonus_pct,
+                "note": f"活动赠送 {100 - bonus_pct:.0f}%"
+                        f"（{bonus_used} / {bonus_total}）"
+                        + (f" · {bend}截止" if bend else ""),
+            })
 
         # ---- 订阅信息 ----
         note_parts: list[str] = []
+        for w in windows:
+            if w["pct"] is None:
+                continue
+            fmt = "%m-%d %H:%M" if w["label"] == "周" else "%H:%M"
+            reset = _fmt_reset(w["end"], fmt)
+            if reset:
+                note_parts.append(f"{w['label']}重置 {reset}")
         sub = payload.get("current_subscription") or {}
         if isinstance(sub, dict):
-            name = (sub.get("display") or {}).get("product_name") if isinstance(
-                sub.get("display"), dict) else None
-            if name:
-                note_parts.append(str(name))
             end_ts = _num(sub.get("end_time"))
             if end_ts and end_ts > 0:
                 import datetime
                 dt = datetime.datetime.fromtimestamp(end_ts / 1000)
                 note_parts.append(f"{dt.year}-{dt.month:02d}-{dt.day:02d}到期")
-        if bonus_pct is not None:
-            note_parts.append(f"活动赠送 {100 - bonus_pct:.0f}%"
-                              f"（{bonus_used} / {bonus_total}）")
 
         return QuotaResult(
             platform=self.key, label=self.label, display=display,
