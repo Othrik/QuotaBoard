@@ -1,0 +1,133 @@
+211 INFO: PyInstaller: 6.22.3, contrib hooks: 2026.9
+212 INFO: Python: 3.13.16
+242 INFO: Platform: Windows-11-10.0.26300-SP0
+242 INFO: Python environment: C:\Users\HuZih\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python
+244 INFO: Removing temporary files and cleaning cache in C:\Users\HuZih\AppData\Local\pyinstaller
+314 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\HuZih\\Doubao\\chats\\2026-10-31\\new-chat-2\\QuotaBoard',
+ 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\Application\\app\\task-mode-resource\\python-packages',
+ 'C:\\Users\\HuZih\\AppData\\Local\\Programs\\RevvitySignalsSoftware\\ChemDrawApplications_x64',
+ 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User '
+ 'Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\python313.zip',
+ 'C:\\Program Files\\Modeller10.8\\modlib',
+ 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User '
+ 'Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\DLLs',
+ 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User '
+ 'Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib',
+ 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User '
+ 'Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python',
+ 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User '
+ 'Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages',
+ 'C:\\Users\\HuZih\\Doubao\\chats\\2026-10-31\\new-chat-2\\QuotaBoard']
+956 INFO: Appending 'datas' from .spec
+957 INFO: checking Analysis
+957 INFO: Building Analysis because Analysis-00.toc is non existent
+957 INFO: Looking for Python shared library...
+957 INFO: Using Python shared library: C:\Users\HuZih\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\python313.dll
+957 INFO: Running Analysis Analysis-00.toc
+957 INFO: Target bytecode optimization level: 0
+957 INFO: Initializing module dependency graph...
+959 INFO: Initializing module graph hook caches...
+970 INFO: Analyzing modules for base_library.zip ...
+2276 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+3126 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+3324 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+4154 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+5105 INFO: Caching module dependency graph...
+5140 INFO: Analyzing C:\Users\HuZih\Doubao\chats\2026-10-31\new-chat-2\QuotaBoard\main.py
+5147 INFO: Processing standard module hook 'hook-PySide6.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+5328 INFO: Processing standard module hook 'hook-shiboken6.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+5458 INFO: Processing standard module hook 'hook-PySide6.QtNetwork.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+6654 INFO: Processing standard module hook 'hook-PySide6.QtCore.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+9298 INFO: Processing standard module hook 'hook-PySide6.QtWidgets.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+12800 INFO: Processing standard module hook 'hook-PySide6.QtGui.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+37207 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+37213 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+37568 INFO: Processing standard module hook 'hook-sqlite3.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+37988 INFO: Processing module hooks (post-graph stage)...
+38012 INFO: Performing binary vs. data reclassification (130 entries)
+38049 INFO: Looking for ctypes DLLs
+38055 INFO: Analyzing run-time hooks ...
+38056 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+38059 INFO: Including run-time hook 'pyi_rth_pyside6.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+38060 INFO: Processing pre-find-module-path hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+38062 INFO: Processing standard module hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PyInstaller\\hooks'
+38071 INFO: Creating base_library.zip...
+38092 INFO: Looking for dynamic libraries
+38467 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\shiboken6']
+38467 INFO: Extra DLL search directories (PATH): ['C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6']
+39077 WARNING: Library not found: could not resolve 'VERSION.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\python313.dll'.
+39080 WARNING: Library not found: could not resolve 'bcrypt.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\python313.dll'.
+39086 WARNING: Library not found: could not resolve 'd2d1.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39089 WARNING: Library not found: could not resolve 'd3d11.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39090 WARNING: Library not found: could not resolve 'dwmapi.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39092 WARNING: Library not found: could not resolve 'UIAutomationCore.DLL', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39094 WARNING: Library not found: could not resolve 'DWrite.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39095 WARNING: Library not found: could not resolve 'mscms.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39097 WARNING: Library not found: could not resolve 'IMM32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39097 WARNING: Library not found: could not resolve 'VERSION.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39099 WARNING: Library not found: could not resolve 'SETUPAPI.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39100 WARNING: Library not found: could not resolve 'SHLWAPI.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39101 WARNING: Library not found: could not resolve 'WINMM.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39103 WARNING: Library not found: could not resolve 'd3d9.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39104 WARNING: Library not found: could not resolve 'COMDLG32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39105 WARNING: Library not found: could not resolve 'WTSAPI32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qdirect2d.dll'.
+39116 WARNING: Library not found: could not resolve 'IMM32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforminputcontexts\\qtvirtualkeyboardplugin.dll'.
+39128 WARNING: Library not found: could not resolve 'dwmapi.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39130 WARNING: Library not found: could not resolve 'UIAutomationCore.DLL', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39132 WARNING: Library not found: could not resolve 'mscms.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39134 WARNING: Library not found: could not resolve 'IMM32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39135 WARNING: Library not found: could not resolve 'SETUPAPI.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39135 WARNING: Library not found: could not resolve 'SHLWAPI.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39136 WARNING: Library not found: could not resolve 'WINMM.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39137 WARNING: Library not found: could not resolve 'd3d9.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39138 WARNING: Library not found: could not resolve 'COMDLG32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39139 WARNING: Library not found: could not resolve 'WTSAPI32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\platforms\\qwindows.dll'.
+39151 WARNING: Library not found: could not resolve 'imagehlp.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\opengl32sw.dll'.
+39159 WARNING: Library not found: could not resolve 'ncrypt.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\tls\\qschannelbackend.dll'.
+39162 WARNING: Library not found: could not resolve 'Secur32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\tls\\qschannelbackend.dll'.
+39163 WARNING: Library not found: could not resolve 'bcrypt.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\tls\\qschannelbackend.dll'.
+39164 WARNING: Library not found: could not resolve 'dwmapi.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\styles\\qmodernwindowsstyle.dll'.
+39167 WARNING: Library not found: could not resolve 'UxTheme.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\plugins\\styles\\qmodernwindowsstyle.dll'.
+39178 WARNING: Library not found: could not resolve 'IPHLPAPI.DLL', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\DLLs\\_socket.pyd'.
+39199 WARNING: Library not found: could not resolve 'd3d12.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Gui.dll'.
+39199 WARNING: Library not found: could not resolve 'dxgi.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Gui.dll'.
+39200 WARNING: Library not found: could not resolve 'd3d11.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Gui.dll'.
+39202 WARNING: Library not found: could not resolve 'DWrite.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Gui.dll'.
+39206 WARNING: Library not found: could not resolve 'UxTheme.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Gui.dll'.
+39207 WARNING: Library not found: could not resolve 'MPR.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Core.dll'.
+39208 WARNING: Library not found: could not resolve 'ntdll.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Core.dll'.
+39211 WARNING: Library not found: could not resolve 'NETAPI32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Core.dll'.
+39213 WARNING: Library not found: could not resolve 'VERSION.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Core.dll'.
+39214 WARNING: Library not found: could not resolve 'AUTHZ.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Core.dll'.
+39215 WARNING: Library not found: could not resolve 'WINMM.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Core.dll'.
+39218 WARNING: Library not found: could not resolve 'icuuc.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Core.dll'.
+39219 WARNING: Library not found: could not resolve 'USERENV.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Core.dll'.
+39222 WARNING: Library not found: could not resolve 'Secur32.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Network.dll'.
+39222 WARNING: Library not found: could not resolve 'IPHLPAPI.DLL', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Network.dll'.
+39223 WARNING: Library not found: could not resolve 'WINHTTP.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Network.dll'.
+39223 WARNING: Library not found: could not resolve 'DNSAPI.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Network.dll'.
+39246 WARNING: Library not found: could not resolve 'dwmapi.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Widgets.dll'.
+39249 WARNING: Library not found: could not resolve 'UxTheme.dll', dependency of 'C:\\Users\\HuZih\\AppData\\Local\\Doubao\\User Data\\sandbox_runtime\\bases\\772984f6fd3a8ae0ae7d2422cd7c2bfa\\python\\Lib\\site-packages\\PySide6\\Qt6Widgets.dll'.
+39304 INFO: Warnings written to C:\Users\HuZih\Doubao\chats\2026-10-31\new-chat-2\QuotaBoard\build\QuotaBoard\warn-QuotaBoard.txt
+39314 INFO: Graph cross-reference written to C:\Users\HuZih\Doubao\chats\2026-10-31\new-chat-2\QuotaBoard\build\QuotaBoard\xref-QuotaBoard.html
+39329 INFO: checking PYZ
+39330 INFO: Building PYZ because PYZ-00.toc is non existent
+39330 INFO: Building PYZ (ZlibArchive) C:\Users\HuZih\Doubao\chats\2026-10-31\new-chat-2\QuotaBoard\build\QuotaBoard\PYZ-00.pyz
+39465 INFO: Building PYZ (ZlibArchive) C:\Users\HuZih\Doubao\chats\2026-10-31\new-chat-2\QuotaBoard\build\QuotaBoard\PYZ-00.pyz completed successfully.
+39472 INFO: checking PKG
+39472 INFO: Building PKG because PKG-00.toc is non existent
+39472 INFO: Building PKG (CArchive) QuotaBoard.pkg
+50656 INFO: Building PKG (CArchive) QuotaBoard.pkg completed successfully.
+50660 INFO: Bootloader C:\Users\HuZih\AppData\Local\Doubao\User Data\sandbox_runtime\bases\772984f6fd3a8ae0ae7d2422cd7c2bfa\python\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+50660 INFO: checking EXE
+50660 INFO: Building EXE because EXE-00.toc is non existent
+50660 INFO: Building EXE from EXE-00.toc
+50663 INFO: Copying bootloader EXE to C:\Users\HuZih\Doubao\chats\2026-10-31\new-chat-2\QuotaBoard\dist\QuotaBoard.exe
+50758 INFO: Copying icon to EXE
+50810 INFO: Copying 0 resources to EXE
+50810 INFO: Embedding manifest in EXE
+50863 INFO: Appending PKG archive to EXE
+51028 INFO: Fixing EXE headers
+51747 INFO: Building EXE from EXE-00.toc completed successfully.
+51752 INFO: Build complete! The results are available in: C:\Users\HuZih\Doubao\chats\2026-10-31\new-chat-2\QuotaBoard\dist

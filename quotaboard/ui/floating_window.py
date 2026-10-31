@@ -29,8 +29,9 @@ SNAP_THRESHOLD = 24  # 距屏幕边缘多少像素内触发吸顶吸附
 # 平台 → 行首 Logo 文件（assets/logo/ 下，随 exe 一起打包）
 PLATFORM_LOGO = {
     "openai": "openai.png",
-    "chatgpt_plus": "chatgpt.png",
-    "codex": "chatgpt.png",
+    # ChatGPT（ChatGPT Plus / Codex）全部使用 OpenAI 官方图标
+    "chatgpt_plus": "openai.png",
+    "codex": "openai.png",
     "doubao": "doubao.png",
     "zhipu": "zhipu.png",
     "zhipu_member": "zhipu.png",
