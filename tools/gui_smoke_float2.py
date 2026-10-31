@@ -87,6 +87,12 @@ try:
     print("donut count:", len(donuts))
     assert len(donuts) == 4, f"两行共 4 个环形图，实际 {len(donuts)}"
     print("donut labels:", [d._label for d in donuts])
+    # 每个圈按自身百分比定色：76/96 绿；47 黄；16 红
+    assert donuts[0]._color == "#34C724" and donuts[1]._color == "#34C724", \
+        [d._color for d in donuts]
+    assert donuts[2]._color == "#FAAD14", donuts[2]._color   # 5h 47% → 黄
+    assert donuts[3]._color == "#F5222D", donuts[3]._color   # 周 16% → 红
+    print("donut colors:", [d._color for d in donuts])
     print("expanded w/h:", w.width(), w.height())
     assert w.width() == 330
 

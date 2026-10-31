@@ -48,6 +48,15 @@ def _resource_path(rel: str) -> str:
     return str(Path(__file__).resolve().parent.parent.parent / rel)
 
 
+def _pct_color(pct: float) -> str:
+    """按剩余百分比定色：≥75 绿、<30 红、中间黄（单圈自身颜色）。"""
+    if pct < 30:
+        return C_RED
+    if pct < 75:
+        return C_YELLOW
+    return C_GREEN
+
+
 def _platform_logo(platform: str) -> Optional[QLabel]:
     """返回平台 Logo 小图（18px）；无 Logo 时返回 None。"""
     name = PLATFORM_LOGO.get(platform)
@@ -127,7 +136,8 @@ class _Donut(QWidget):
         self._pct = max(0.0, min(100.0, float(percent)))
         self._color = color
         self._label = label
-        self.setFixedSize(46, 52)
+        # 高 55：标签区底部落在 widget 内，避免「5h / 周」下沿被裁
+        self.setFixedSize(46, 55)
 
     def paintEvent(self, event) -> None:
         p = QPainter(self)
@@ -202,7 +212,7 @@ class _Row(QFrame):
         right = QVBoxLayout()
         right.setSpacing(4)
         if result.metrics:
-            # 多窗口环形图（如 ChatGPT 5h / 周）
+            # 多窗口环形图（如 ChatGPT 5h / 周）：每个圈按自身剩余百分比定色
             donuts = QHBoxLayout()
             donuts.setSpacing(4)
             for m in result.metrics:
@@ -210,7 +220,8 @@ class _Row(QFrame):
                     m_pct = float(m.get("percent"))
                 except (TypeError, ValueError):
                     m_pct = 0.0
-                donuts.addWidget(_Donut(m_pct, color, str(m.get("label", ""))))
+                donuts.addWidget(_Donut(m_pct, _pct_color(m_pct),
+                                        str(m.get("label", ""))))
             right.addLayout(donuts)
         else:
             val = QLabel(result.display if result.ok else "—")
@@ -360,19 +371,8 @@ class FloatingWindow(QWidget):
             for r in rows:
                 self.body.addWidget(_Row(r, manual=(r.platform == "manual")))
 
-        # 头部摘要（无状态圆点，仅文字）
-        n_ok = sum(1 for r in rows if _row_level(r) == "ok")
-        n_warn = sum(1 for r in rows if _row_level(r) == "warn")
-        n_danger = sum(1 for r in rows if _row_level(r) == "danger")
-        if rows:
-            if n_danger:
-                self.head_summary.setText(f"{n_danger} 个告警")
-            elif n_warn:
-                self.head_summary.setText(f"{n_warn} 个偏低")
-            else:
-                self.head_summary.setText(f"{len(rows)} 个正常")
-        else:
-            self.head_summary.setText("未配置")
+        # 头部不再显示「N 个偏低/告警/正常」摘要（用户要求移除）
+        self.head_summary.setText("")
 
         self.update_size()
 
