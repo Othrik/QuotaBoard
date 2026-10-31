@@ -21,6 +21,7 @@ C_BLUE = "#1677FF"
 C_GRAY = "#8A9099"
 TEXT_MAIN = "#1F2329"
 TEXT_SUB = "#646A73"
+SNAP_THRESHOLD = 24  # 距屏幕边缘多少像素内触发吸顶吸附
 
 
 def make_app_icon() -> QIcon:
@@ -349,6 +350,26 @@ class FloatingWindow(QWidget):
             self._moved = True
         super().mouseMoveEvent(event)
 
+    def _snap_rect(self, rect) -> tuple[int, int]:
+        """吸顶：窗口拖动到屏幕边缘附近时，自动吸附贴齐对应边缘，返回新位置 (x, y)。"""
+        screen = self.screen()
+        if screen is None:
+            return rect.x(), rect.y()
+        geo = screen.availableGeometry()
+        x, y = rect.x(), rect.y()
+        w, h = rect.width(), rect.height()
+        left, top = geo.left(), geo.top()
+        right, bottom = geo.right() + 1, geo.bottom() + 1
+        if abs(x - left) <= SNAP_THRESHOLD:
+            x = left
+        elif abs(right - (x + w)) <= SNAP_THRESHOLD:
+            x = right - w
+        if abs(y - top) <= SNAP_THRESHOLD:
+            y = top
+        elif abs(bottom - (y + h)) <= SNAP_THRESHOLD:
+            y = bottom - h
+        return x, y
+
     def mouseReleaseEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             if not self._moved:
@@ -357,6 +378,9 @@ class FloatingWindow(QWidget):
                     self.toggle()
                 elif self.collapse_btn.underMouse() or self.header.underMouse():
                     self.toggle()
+            else:
+                # 拖动结束：靠近屏幕边缘时吸顶贴边
+                self.move(*self._snap_rect(self.frameGeometry()))
             self._drag_pos = None
         super().mouseReleaseEvent(event)
 
