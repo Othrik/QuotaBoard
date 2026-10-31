@@ -242,8 +242,6 @@ class FloatingWindow(QWidget):
         self.header.setCursor(Qt.CursorShape.PointingHandCursor)
         hlay = QHBoxLayout(self.header)
         hlay.setContentsMargins(14, 10, 14, 6)
-        self.head_dot = _StatusDot(C_GRAY, 8)
-        hlay.addWidget(self.head_dot)
         self.head_title = QLabel("AI 额度")
         self.head_title.setStyleSheet(f"font-size: 15px; font-weight: 600; color: {TEXT_MAIN};")
         hlay.addWidget(self.head_title)
@@ -315,22 +313,18 @@ class FloatingWindow(QWidget):
             for r in rows:
                 self.body.addWidget(_Row(r, manual=(r.platform == "manual")))
 
-        # 头部摘要
+        # 头部摘要（无状态圆点，仅文字）
         n_ok = sum(1 for r in rows if _row_level(r) == "ok")
         n_warn = sum(1 for r in rows if _row_level(r) == "warn")
         n_danger = sum(1 for r in rows if _row_level(r) == "danger")
         if rows:
             if n_danger:
-                self.head_dot.setColor(C_RED)
                 self.head_summary.setText(f"{n_danger} 个告警")
             elif n_warn:
-                self.head_dot.setColor(C_YELLOW)
                 self.head_summary.setText(f"{n_warn} 个偏低")
             else:
-                self.head_dot.setColor(C_GREEN)
                 self.head_summary.setText(f"{len(rows)} 个正常")
         else:
-            self.head_dot.setColor(C_GRAY)
             self.head_summary.setText("未配置")
 
         self.update_size()

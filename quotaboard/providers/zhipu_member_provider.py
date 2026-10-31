@@ -164,17 +164,36 @@ def _num(v):
 
 
 def extract_member(data) -> dict | None:
-    """从接口响应中宽容提取 member_info 字典。"""
+    """从接口响应中宽容提取会员信息字典。
+
+    兼容两种结构：
+      - 新结构：{"status":0,"result":{"level":…,"token_left_percent":"72%","left_score":…}}
+      - 旧结构：{"result":{"member_info":{…}}}
+    """
     if not isinstance(data, dict):
         return None
-    if isinstance(data.get("result"), dict) and "member_info" in data["result"]:
-        member = data["result"]["member_info"]
-    elif any(k in data for k in ("member_status", "level", "token_left_percent",
-                                  "member_expiration_time", "left_score")):
-        member = data
-    else:
-        member = _find(data, ("member_info",))
-    return member if isinstance(member, dict) else None
+    if isinstance(data.get("result"), dict):
+        result = data["result"]
+        if "member_info" in result and isinstance(result["member_info"], dict):
+            return result["member_info"]
+        # 新结构：result 本身即会员数据
+        if any(k in result for k in ("level", "token_left_percent",
+                                     "left_score", "is_member", "status",
+                                     "member_status")):
+            return result
+    if isinstance(data.get("member_info"), dict):
+        return data["member_info"]
+    if any(k in data for k in ("member_status", "level", "token_left_percent",
+                               "member_expiration_time", "left_score")):
+        return data
+    return _find(data, ("member_info",))
+
+
+def _pct(v):
+    """百分比字段：容忍 "72%" 字符串，返回数值。"""
+    if isinstance(v, str):
+        v = v.strip().rstrip("%").strip()
+    return _num(v)
 
 
 class ZhipuMemberProvider(Provider):
@@ -211,13 +230,21 @@ class ZhipuMemberProvider(Provider):
             return self.err("响应未包含会员信息（接口可能已调整）")
 
         level = str(member.get("level") or "").upper()
+        # 会员状态：新结构用 is_member + status；旧结构用 member_status
         status = _num(member.get("member_status"))
-        percent = _num(member.get("token_left_percent"))
+        if status is None:
+            status = _num(member.get("status"))
+        is_member = member.get("is_member")
+        percent = _pct(member.get("token_left_percent"))
         score = _num(member.get("left_score"))
         expire_ts = _num(member.get("member_expiration_time"))
+        if not expire_ts or expire_ts <= 0:
+            expire_ts = _num(member.get("vip_expired_at"))
+        if not expire_ts or expire_ts <= 0:
+            expire_ts = _num(member.get("expired_at"))
 
-        # 会员状态：2=有效会员，3=已过期，1/0=非会员（从 JS getters 确认）
-        if status == 2:
+        # 会员状态：2=有效会员，3=已过期，其余非会员；新结构 is_member 优先
+        if is_member is True or status == 2:
             status_text = "有效"
         elif status == 3:
             status_text = "已过期"

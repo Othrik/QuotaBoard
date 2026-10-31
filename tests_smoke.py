@@ -154,6 +154,32 @@ def test_zhipu_member_provider() -> None:
     print(f"[OK] 智谱清言会员解析正确（{result.display}，"
           f"{result.sub_note}，percent={result.percent}）")
 
+    # 2b) 新接口结构（result 直接是会员数据，百分比带 %，积分大数）
+    payload_new = {
+        "status": 0, "message": "success",
+        "result": {
+            "id": 0, "user_id": "u1", "is_member": False, "status": 1,
+            "level": "", "vip_expired_at": 1788123885,
+            "token_usage_percent": "28%", "token_left_percent": "72%",
+            "left_token": 709020, "left_score": 2393848,
+            "score_rule": "免费用户，登录赠送200积分/天",
+        },
+    }
+    member_new = extract_member(payload_new)
+    assert member_new is not None and "left_score" in member_new
+    with mock.patch(
+            "quotaboard.providers.zhipu_member_provider.read_client_token",
+            return_value=(True, "", "fake_token")), mock.patch(
+            "quotaboard.providers.zhipu_member_provider.http_get_json",
+            return_value=payload_new):
+        result = PROVIDERS["zhipu_member"]({}).fetch()
+    assert result.ok, result.error
+    assert result.percent == 72.0
+    assert "非会员" in result.sub_note
+    assert "2,393,848" in result.sub_note  # 积分大数
+    assert "到期" in result.sub_note
+    print(f"[OK] 智谱清言新接口结构解析正确（{result.display}，{result.sub_note}）")
+
     # 3) token 过期（HTTP 401）→ 明确提示
     import urllib.error
     exc = urllib.error.HTTPError(
