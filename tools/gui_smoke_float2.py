@@ -95,6 +95,15 @@ try:
     print("donut colors:", [d._color for d in donuts])
     print("expanded w/h:", w.width(), w.height())
     assert w.width() == 330
+    # 展开态：头部右侧 AI 图标应隐藏（仅折叠态显示）
+    head_logos = []
+    for i in range(w.head_logos.count()):
+        item = w.head_logos.itemAt(i)
+        ww = item.widget()
+        if ww is not None:
+            head_logos.append(ww)
+    assert head_logos and not any(x.isVisible() for x in head_logos), \
+        "展开态头部图标应隐藏"
 
     # 折叠态：行隐藏、高度自适应（<=70）
     w.toggle()
@@ -103,14 +112,9 @@ try:
     assert w.width() == 210
     assert w.height() <= 70, f"折叠高度 {w.height()} 应 <=70"
     # 折叠态头部右侧显示正在使用的 AI 图标（codex=ChatGPT、doubao 共 2 个）
-    head_logos = []
-    for i in range(w.head_logos.count()):
-        item = w.head_logos.itemAt(i)
-        ww = item.widget()
-        if ww is not None:
-            head_logos.append(ww)
     print("head logos:", len(head_logos))
     assert len(head_logos) == 2, f"折叠态头部应有 2 个 AI 图标，实际 {len(head_logos)}"
+    assert all(x.isVisible() for x in head_logos), "折叠态头部图标应可见"
     hidden = []
     for i in range(w.body.count()):
         row = w.body.itemAt(i).widget()

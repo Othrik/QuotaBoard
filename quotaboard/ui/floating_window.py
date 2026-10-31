@@ -8,7 +8,8 @@ from typing import Optional
 
 from PySide6.QtCore import QPoint, QRectF, Qt, Signal
 from PySide6.QtGui import (
-    QAction, QColor, QFont, QGuiApplication, QIcon, QPainter, QPen, QPixmap,
+    QAction, QColor, QFont, QGuiApplication, QIcon, QImage, QPainter, QPen,
+    QPixmap,
 )
 from PySide6.QtWidgets import (
     QApplication, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel,
@@ -60,8 +61,31 @@ def _pct_color(pct: float) -> str:
     return C_GREEN
 
 
+def _logo_effective_ratio(pix: QPixmap) -> float:
+    """统计图片不透明像素面积占比（有效像素密度），用于图标视觉大小对齐。"""
+    img = pix.toImage().convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
+    w, h = img.width(), img.height()
+    if w <= 0 or h <= 0:
+        return 1.0
+    bits = img.constBits()
+    stride = img.bytesPerLine()
+    opaque = 0
+    total = w * h
+    for y in range(h):
+        base = y * stride
+        for x in range(w):
+            if bits[base + x * 4 + 3] > 16:
+                opaque += 1
+    return opaque / total if total else 1.0
+
+
 def _platform_logo(platform: str, size: int = 18) -> Optional[QLabel]:
-    """返回平台 Logo 小图（默认 18px 逻辑尺寸），高分屏按设备像素比渲染。"""
+    """返回平台 Logo 小图（默认 18px 逻辑尺寸）。
+
+    - 高分屏按设备像素比渲染，避免模糊；
+    - 按「有效像素面积占比」对齐视觉大小（以 openai/ChatGPT 图标为基准）：
+      填充密实的大图标缩小、细线留白多的小图标保持，使各 Logo 视觉上大小一致。
+    """
     name = PLATFORM_LOGO.get(platform)
     if not name:
         return None
@@ -71,6 +95,15 @@ def _platform_logo(platform: str, size: int = 18) -> Optional[QLabel]:
     pix = QPixmap(path)
     if pix.isNull():
         return None
+    ratio = _logo_effective_ratio(pix)
+    # 基准占比取 openai.png（ChatGPT 图标）；找不到时回退 0.38
+    base = 0.38
+    base_path = _resource_path("assets/logo/openai.png")
+    if os.path.isfile(base_path):
+        bp = QPixmap(base_path)
+        if not bp.isNull():
+            base = _logo_effective_ratio(bp)
+    scale = (base / ratio) ** 0.5 if ratio > 0 else 1.0
     lab = QLabel()
     lab.setFixedSize(size, size)
     # 设备像素比感知：pixmap 按 dpr 放大渲染，QLabel 逻辑尺寸不变，高分屏下不糊
@@ -78,7 +111,7 @@ def _platform_logo(platform: str, size: int = 18) -> Optional[QLabel]:
     scr = QGuiApplication.primaryScreen()
     if scr is not None:
         dpr = max(1.0, scr.devicePixelRatio())
-    px = int(round(size * dpr))
+    px = max(1, int(round(size * scale * dpr)))
     scaled = pix.scaled(
         px, px, Qt.AspectRatioMode.KeepAspectRatio,
         Qt.TransformationMode.SmoothTransformation)
@@ -408,6 +441,11 @@ class FloatingWindow(QWidget):
             w = self.body.itemAt(i).widget()
             if w is not None:
                 w.setVisible(self.expanded)
+        # 头部右侧的在用 AI 图标：仅折叠态显示（展开态隐藏，避免与内容重复）
+        for i in range(self.head_logos.count()):
+            w = self.head_logos.itemAt(i).widget()
+            if w is not None:
+                w.setVisible(not self.expanded)
 
         if self.expanded:
             self.setFixedWidth(330)

@@ -1,0 +1,27 @@
+{
+ "deepseek.png": {
+  "ratio": 0.375,
+  "scale": 1.007
+ },
+ "doubao.png": {
+  "ratio": 0.969,
+  "scale": 0.626
+ },
+ "kimi.png": {
+  "ratio": 0.969,
+  "scale": 0.626
+ },
+ "openai.png": {
+  "ratio": 0.38,
+  "scale": 1.0
+ },
+ "volc.png": {
+  "ratio": 0.969,
+  "scale": 0.626
+ },
+ "zhipu.png": {
+  "ratio": 0.325,
+  "scale": 1.081
+ },
+ "_base_openai_ratio": 0.38
+}

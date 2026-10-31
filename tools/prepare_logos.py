@@ -11,8 +11,17 @@ SIZE = 256
 RADIUS = 48
 
 
+def trim_transparent(im: Image.Image) -> Image.Image:
+    """先裁剪到非透明内容包围盒，避免四周大透明留白导致内容铺不满画布。"""
+    bbox = im.split()[3].getbbox()
+    if bbox:
+        return im.crop(bbox)
+    return im
+
+
 def fit_paste(base: Image.Image, src: Image.Image) -> None:
-    """将 src 等比缩放居中贴到 base 上，不拉伸变形。"""
+    """将 src 裁剪空白后等比缩放居中贴到 base 上，不拉伸变形。"""
+    src = trim_transparent(src)
     w, h = src.size
     scale = min(SIZE / w, SIZE / h)
     nw, nh = max(1, int(w * scale)), max(1, int(h * scale))
