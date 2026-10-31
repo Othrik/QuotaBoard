@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import QPoint, QRectF, Qt, Signal
-from PySide6.QtGui import QAction, QColor, QFont, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtGui import (
+    QAction, QColor, QFont, QGuiApplication, QIcon, QPainter, QPen, QPixmap,
+)
 from PySide6.QtWidgets import (
     QApplication, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel,
     QMenu, QProgressBar, QVBoxLayout, QWidget,
@@ -59,7 +61,7 @@ def _pct_color(pct: float) -> str:
 
 
 def _platform_logo(platform: str, size: int = 18) -> Optional[QLabel]:
-    """返回平台 Logo 小图（默认 18px）；无 Logo 时返回 None。"""
+    """返回平台 Logo 小图（默认 18px 逻辑尺寸），高分屏按设备像素比渲染。"""
     name = PLATFORM_LOGO.get(platform)
     if not name:
         return None
@@ -71,9 +73,17 @@ def _platform_logo(platform: str, size: int = 18) -> Optional[QLabel]:
         return None
     lab = QLabel()
     lab.setFixedSize(size, size)
-    lab.setPixmap(pix.scaled(
-        size, size, Qt.AspectRatioMode.KeepAspectRatio,
-        Qt.TransformationMode.SmoothTransformation))
+    # 设备像素比感知：pixmap 按 dpr 放大渲染，QLabel 逻辑尺寸不变，高分屏下不糊
+    dpr = 1.0
+    scr = QGuiApplication.primaryScreen()
+    if scr is not None:
+        dpr = max(1.0, scr.devicePixelRatio())
+    px = int(round(size * dpr))
+    scaled = pix.scaled(
+        px, px, Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation)
+    scaled.setDevicePixelRatio(dpr)
+    lab.setPixmap(scaled)
     return lab
 
 
