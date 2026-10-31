@@ -24,6 +24,29 @@ TEXT_SUB = "#646A73"
 SNAP_THRESHOLD = 24  # 距屏幕边缘多少像素内触发吸顶吸附
 
 
+def _row_level(result: QuotaResult) -> str:
+    """行状态等级：有多窗口（ChatGPT / 豆包）时按「周」额度判定，
+    其余平台按整体剩余百分比。规则：≥75% ok(绿)、<30% danger(红)、中间 warn(黄)。"""
+    if not result.ok:
+        return "danger"
+    pct = result.percent
+    if result.metrics:
+        for m in result.metrics:
+            if m.get("label") == "周":
+                try:
+                    pct = float(m.get("percent"))
+                except (TypeError, ValueError):
+                    pass
+                break
+    if pct is None:
+        return "ok"
+    if pct < 30:
+        return "danger"
+    if pct < 75:
+        return "warn"
+    return "ok"
+
+
 def make_app_icon() -> QIcon:
     """程序图标：蓝底圆角方块 + 白色刻度条（象征额度）。"""
     pix = QPixmap(64, 64)
@@ -53,22 +76,27 @@ class _StatusDot(QLabel):
 
 
 class _Donut(QWidget):
-    """环形图：外圈进度环 + 中心百分比 + 底部标签。"""
+    """环形图：外圈进度环 + 中心百分比 + 底部标签。
+    圈体较小、条带两端圆头、底部标签与圈保持间距。"""
 
     def __init__(self, percent: float, color: str, label: str = "") -> None:
         super().__init__()
         self._pct = max(0.0, min(100.0, float(percent)))
         self._color = color
         self._label = label
-        self.setFixedSize(50, 56)
+        self.setFixedSize(46, 52)
 
     def paintEvent(self, event) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        ring = QRectF(5, 4, 40, 40)
+        ring = QRectF(6, 3, 34, 34)
+        # 底环
         p.setPen(QPen(QColor("#EEF0F2"), 5))
         p.drawEllipse(ring)
-        p.setPen(QPen(QColor(self._color), 5))
+        # 进度环：圆头端点（RoundCap）使条带两端圆润
+        pen = QPen(QColor(self._color), 5)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.setPen(pen)
         # 从顶部（90°）逆时针画剩余比例
         p.drawArc(ring, 90 * 16, int(-self._pct * 3.6 * 16))
         f = QFont()
@@ -82,7 +110,8 @@ class _Donut(QWidget):
             f2.setPointSize(8)
             p.setFont(f2)
             p.setPen(QColor(TEXT_SUB))
-            p.drawText(QRectF(0, 46, 50, 10), Qt.AlignmentFlag.AlignCenter,
+            # 标签与圈底保持间距，避免贴太近
+            p.drawText(QRectF(0, 43, 46, 10), Qt.AlignmentFlag.AlignCenter,
                        self._label)
         p.end()
 
@@ -100,7 +129,7 @@ class _Row(QFrame):
         lay.setContentsMargins(12, 8, 12, 8)
         lay.setSpacing(10)
 
-        level = result.status_level()
+        level = _row_level(result)
         color = C_GREEN if level == "ok" else (C_YELLOW if level == "warn" else C_RED)
         if manual:
             color = C_BLUE
@@ -287,9 +316,9 @@ class FloatingWindow(QWidget):
                 self.body.addWidget(_Row(r, manual=(r.platform == "manual")))
 
         # 头部摘要
-        n_ok = sum(1 for r in rows if r.status_level() == "ok")
-        n_warn = sum(1 for r in rows if r.status_level() == "warn")
-        n_danger = sum(1 for r in rows if r.status_level() == "danger")
+        n_ok = sum(1 for r in rows if _row_level(r) == "ok")
+        n_warn = sum(1 for r in rows if _row_level(r) == "warn")
+        n_danger = sum(1 for r in rows if _row_level(r) == "danger")
         if rows:
             if n_danger:
                 self.head_dot.setColor(C_RED)

@@ -29,14 +29,15 @@ class QuotaResult:
             self.updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def status_level(self) -> str:
-        """状态等级：ok(正常) / warn(偏低) / danger(告警或失败)。"""
+        """状态等级：ok(正常) / warn(偏低) / danger(告警或失败)。
+        颜色规则：剩余 ≥75% 绿色，<30% 红色，中间黄色。"""
         if not self.ok:
             return "danger"
         if self.percent is None:
             return "ok"
-        if self.percent < 10:
-            return "danger"
         if self.percent < 30:
+            return "danger"
+        if self.percent < 75:
             return "warn"
         return "ok"
 

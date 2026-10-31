@@ -266,6 +266,43 @@ def test_doubao_provider() -> None:
     print("[OK] 豆包登录态失效错误路径")
 
 
+def test_ui_color_rules() -> None:
+    """颜色规则：≥75 绿、<30 红、中间黄；多窗口行按「周」额度判定。"""
+    from quotaboard.model import QuotaResult
+    from quotaboard.ui.floating_window import _row_level
+
+    def mk(pct=None, metrics=None):
+        return QuotaResult(platform="x", label="X", display="", percent=pct,
+                           metrics=metrics, ok=True)
+
+    # 阈值：75 / 30
+    assert _row_level(mk(80)) == "ok"
+    assert _row_level(mk(75)) == "ok"
+    assert _row_level(mk(74)) == "warn"
+    assert _row_level(mk(30)) == "warn"
+    assert _row_level(mk(29)) == "danger"
+    assert _row_level(mk(0)) == "danger"
+    assert _row_level(mk(None)) == "ok"
+    # 失败行恒为 danger
+    bad = QuotaResult(platform="x", label="X", display="", ok=False, error="e")
+    assert _row_level(bad) == "danger"
+
+    # 多窗口：按周额度判定（周 96 → ok；即使 5h 只有 10）
+    r1 = mk(10, metrics=[{"label": "5h", "percent": 10},
+                          {"label": "周", "percent": 96}])
+    assert _row_level(r1) == "ok"
+    # 周 16 → danger（豆包截图场景：周 16%）
+    r2 = mk(47, metrics=[{"label": "5h", "percent": 47},
+                          {"label": "周", "percent": 16},
+                          {"label": "活动赠送", "percent": 2}])
+    assert _row_level(r2) == "danger"
+    # 周 50 → warn
+    r3 = mk(50, metrics=[{"label": "5h", "percent": 30},
+                          {"label": "周", "percent": 50}])
+    assert _row_level(r3) == "warn"
+    print("[OK] 颜色规则：≥75 绿、<30 红、中间黄，多窗口按周额度")
+
+
 if __name__ == "__main__":
     test_dpapi_roundtrip()
     test_config_read_write()
@@ -274,4 +311,5 @@ if __name__ == "__main__":
     test_codex_provider()
     test_zhipu_member_provider()
     test_doubao_provider()
+    test_ui_color_rules()
     print("\n全部冒烟测试通过。")
