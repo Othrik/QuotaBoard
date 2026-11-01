@@ -339,7 +339,7 @@ def _dock_quota_text(result: QuotaResult) -> str:
             notes = str(metric.get("note", "")) + " " + result.sub_note
             date = re.search(r"周\s*重置\s*(?:\d{4}-)?(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}:\d{2}))?", notes)
             if date:
-                clock = f" {date[3]}" if date[3] else ""
+                clock = f" {date[3]} " if date[3] else " "
                 return red(f"{int(date[1])}月{int(date[2])}日{clock}周重置")
             return red("周额度用完，等待重置")
     parts = []
