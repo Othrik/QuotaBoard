@@ -88,13 +88,13 @@ try:
     assert len(donuts) == 4, f"两行共 4 个环形图，实际 {len(donuts)}"
     print("donut labels:", [d._label for d in donuts])
     # 每个圈按自身百分比定色：76/96 绿；47 黄；16 红
-    assert donuts[0]._color == "#34C724" and donuts[1]._color == "#34C724", \
+    assert donuts[0]._color == "#27AE80" and donuts[1]._color == "#27AE80", \
         [d._color for d in donuts]
-    assert donuts[2]._color == "#FAAD14", donuts[2]._color   # 5h 47% → 黄
-    assert donuts[3]._color == "#F5222D", donuts[3]._color   # 周 16% → 红
+    assert donuts[2]._color == "#E5A132", donuts[2]._color   # 5h 47% → 黄
+    assert donuts[3]._color == "#E45D6A", donuts[3]._color   # 周 16% → 红
     print("donut colors:", [d._color for d in donuts])
     print("expanded w/h:", w.width(), w.height())
-    assert w.width() == 330
+    assert w.width() == 380
     # 展开态：头部右侧 AI 图标应隐藏（仅折叠态显示）
     head_logos = []
     for i in range(w.head_logos.count()):
@@ -105,12 +105,12 @@ try:
     assert head_logos and not any(x.isVisible() for x in head_logos), \
         "展开态头部图标应隐藏"
 
-    # 折叠态：行隐藏、高度自适应（<=70）
+    # 折叠态：行隐藏、高度自适应（<=90）
     w.toggle()
     app.processEvents()
     print("collapsed w/h:", w.width(), w.height())
     assert w.width() == 210
-    assert w.height() <= 70, f"折叠高度 {w.height()} 应 <=70"
+    assert w.height() <= 90, f"折叠高度 {w.height()} 应 <=90"
     # 折叠态头部右侧显示正在使用的 AI 图标（codex=ChatGPT、doubao 共 2 个）
     print("head logos:", len(head_logos))
     assert len(head_logos) == 2, f"折叠态头部应有 2 个 AI 图标，实际 {len(head_logos)}"
@@ -137,7 +137,7 @@ try:
     w.mouseReleaseEvent(ev_r)
     app.processEvents()
     print("re-expanded w/h:", w.width(), w.height())
-    assert w.width() == 330, f"点击头部应展开，实际宽 {w.width()}"
+    assert w.width() == 380, f"点击头部应展开，实际宽 {w.width()}"
     visible = []
     for i in range(w.body.count()):
         row = w.body.itemAt(i).widget()

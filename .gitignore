@@ -22,3 +22,8 @@ tools/decrypt_doubao_cookies.py
 tools/parse_cache_urls.py
 tools/probe_js_api.py
 tools/probe_webs_api.py
+
+.deps/
+*-preview.png
+ui_update.py
+preview_ui.py

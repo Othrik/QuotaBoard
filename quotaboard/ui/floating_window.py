@@ -14,16 +14,16 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel,
-    QMenu, QProgressBar, QVBoxLayout, QWidget,
+    QMenu, QPushButton, QProgressBar, QVBoxLayout, QWidget,
 )
 
 from ..config import Config
 from ..model import QuotaResult
 from ..scheduler import Scheduler
 
-C_GREEN = "#34C724"
-C_YELLOW = "#FAAD14"
-C_RED = "#F5222D"
+C_GREEN = "#27AE80"
+C_YELLOW = "#E5A132"
+C_RED = "#E45D6A"
 C_BLUE = "#1677FF"
 C_GRAY = "#8A9099"
 TEXT_MAIN = "#1F2329"
@@ -227,10 +227,10 @@ class _Row(QFrame):
         super().__init__()
         self.setObjectName("row")
         self.setStyleSheet(
-            "#row { background: rgba(255,255,255,0.55); border-radius: 10px; }"
+            "#row { background: rgba(248,250,253,0.95); border-radius: 10px; }"
             "#row:hover { background: rgba(245,247,250,0.9); }")
         lay = QHBoxLayout(self)
-        lay.setContentsMargins(12, 8, 12, 8)
+        lay.setContentsMargins(12, 12, 12, 12)
         lay.setSpacing(10)
 
         level = _row_level(result)
@@ -255,7 +255,9 @@ class _Row(QFrame):
             sub = f"已用 {result.used:,.0f} / {result.total:,.0f} {result.unit} · {result.updated_at}"
         note = QLabel(sub)
         note.setStyleSheet(f"font-size: 11px; color: {TEXT_SUB};")
-        note.setWordWrap(False)
+        note.setWordWrap(True)
+        note.setMaximumWidth(170)
+        note.setToolTip(sub)
         left.addWidget(name)
         left.addWidget(note)
         lay.addLayout(left, 1)
@@ -343,7 +345,7 @@ class FloatingWindow(QWidget):
         outer.addWidget(self.card)
 
         self.card_lay = QVBoxLayout(self.card)
-        self.card_lay.setContentsMargins(0, 0, 0, 0)
+        self.card_lay.setContentsMargins(8, 4, 8, 8)
         self.card_lay.setSpacing(6)
 
         # 头部（可点击收起/展开）
@@ -363,6 +365,13 @@ class FloatingWindow(QWidget):
         self.head_summary = QLabel("")
         self.head_summary.setStyleSheet(f"font-size: 12px; color: {TEXT_SUB};")
         hlay.addWidget(self.head_summary)
+        for text, tip, signal in (("刷新", "立即刷新", self.refresh_requested), ("设置", "打开设置", self.settings_requested)):
+            button = QPushButton(text)
+            button.setFixedSize(34, 26)
+            button.setToolTip(tip)
+            button.setStyleSheet("QPushButton { border: none; border-radius: 6px; color: #667085; font-size: 11px; } QPushButton:hover { background: #EAF0FC; color: #4169E1; }")
+            button.clicked.connect(signal.emit)
+            hlay.addWidget(button)
         self.card_lay.addWidget(self.header)
 
         # 内容区
@@ -464,7 +473,7 @@ class FloatingWindow(QWidget):
             self.head_summary.setVisible(False)
 
         if self.expanded:
-            self.setFixedWidth(330)
+            self.setFixedWidth(380)
             # 解除折叠时的高度限制，让 adjustSize 自适应
             self.setMinimumHeight(0)
             self.setMaximumHeight(16777215)
@@ -521,7 +530,7 @@ class FloatingWindow(QWidget):
                 # 点击头部区域：折叠态展开；展开态收起（无 +/- 按钮，直接点击切换）。
                 # 折叠态下整个窗口即头部，点击任意位置均展开。
                 in_header = (self.expanded
-                             and event.position().y() <= self.header.height())
+                             and self.header.geometry().contains(self.card.mapFrom(self, event.position().toPoint())))
                 if not self.expanded or in_header:
                     self.toggle()
             else:

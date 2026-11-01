@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFormLayout, QFrame, QGroupBox,
     QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMessageBox, QPushButton,
-    QScrollArea, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QListWidget, QScrollArea, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
 from ..config import Config
@@ -21,18 +21,42 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.config = config
         self.setWindowTitle("QuotaBoard 设置")
-        self.setMinimumWidth(460)
+        self.setMinimumWidth(720)
+        self.setStyleSheet("""
+            QDialog { background: #F5F7FB; color: #202938; font-family: Segoe UI; font-size: 13px; }
+            QGroupBox { background: white; border: 1px solid #E2E7F0; border-radius: 12px; margin-top: 14px; padding: 20px 16px 16px; font-weight: 600; }
+            QGroupBox::title { subcontrol-origin: margin; left: 16px; padding: 0 6px; }
+            QLineEdit, QSpinBox, QComboBox { background: white; border: 1px solid #DCE2EC; border-radius: 7px; padding: 8px; min-height: 18px; }
+            QLineEdit:focus, QSpinBox:focus, QComboBox:focus { border: 1px solid #527BEE; }
+            QPushButton { background: white; border: 1px solid #DCE2EC; border-radius: 7px; padding: 8px 16px; color: #344054; }
+            QPushButton:hover { background: #EDF2FF; border-color: #A8BAEF; }
+            QPushButton#primary { background: #4169E1; color: white; border: none; }
+            QListWidget { background: #EBEFF7; border: none; border-radius: 10px; padding: 6px; outline: none; }
+            QListWidget::item { padding: 12px 10px; border-radius: 6px; margin: 2px 0; }
+            QListWidget::item:selected { background: white; color: #365CC5; }
+            QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; }
+            QTableWidget { background: white; border: 1px solid #DCE2EC; gridline-color: #EDF0F5; }
+            QHeaderView::section { background: #EDF2FA; border: none; padding: 8px; }
+        """)
         self._build_ui()
         self._load()
         # 初始尺寸适配屏幕：高不超过可用高度，内容超高时由滚动区承接
         geo = QApplication.primaryScreen().availableGeometry()
-        self.resize(min(500, geo.width() - 60),
+        self.resize(min(860, geo.width() - 60),
                     min(int(geo.height() * 0.88), geo.height() - 60))
 
     def _build_ui(self) -> None:
         lay = QVBoxLayout(self)
         lay.setSpacing(10)
         lay.setContentsMargins(12, 12, 12, 10)
+
+        heading = QLabel("偏好设置")
+        heading.setStyleSheet("font-size: 22px; font-weight: 600; padding: 6px;")
+        lay.addWidget(heading)
+        content = QHBoxLayout()
+        self.navigation = QListWidget()
+        self.navigation.setFixedWidth(170)
+        content.addWidget(self.navigation)
 
         # ---- 可滚动内容区（平台配置 + 间隔 + 手动额度） ----
         scroll = QScrollArea()
@@ -44,7 +68,7 @@ class SettingsDialog(QDialog):
         clay.setSpacing(12)
         clay.setContentsMargins(2, 2, 2, 2)
 
-        title = QLabel("平台凭据（仅保存在本机，DPAPI 加密）")
+        title = QLabel("连接你的 AI 平台 · 凭据仅保存在本机并加密")
         title.setStyleSheet("font-size: 14px; font-weight: 600;")
         clay.addWidget(title)
 
@@ -142,7 +166,12 @@ class SettingsDialog(QDialog):
             tbtn.clicked.connect(lambda _=False, k=key: self._test(k))
             v.addWidget(tbtn)
             clay.addWidget(box)
+            self.navigation.addItem(meta["label"])
             self.platform_boxes[key] = box
+
+        general = QWidget()
+        general_layout = QVBoxLayout(general)
+        self.navigation.addItem("通用与手动额度")
 
         # ---- 刷新间隔 ----
         form = QFormLayout()
@@ -150,20 +179,21 @@ class SettingsDialog(QDialog):
         self.interval_spin.setRange(1, 1440)
         self.interval_spin.setSuffix(" 分钟")
         form.addRow("自动刷新间隔", self.interval_spin)
-        clay.addLayout(form)
+        general_layout.addLayout(form)
 
         # ---- 手动额度 ----
         mtitle = QLabel("手动额度（豆包等无公开接口的平台，手动维护）")
         mtitle.setStyleSheet("font-size: 14px; font-weight: 600;")
-        clay.addWidget(mtitle)
+        general_layout.addWidget(mtitle)
         self.manual_table = QTableWidget(0, 5)
         self.manual_table.setHorizontalHeaderLabels(["名称", "总量", "已用", "单位", "备注"])
         self.manual_table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeMode.Stretch)
         self.manual_table.horizontalHeader().setSectionResizeMode(
             4, QHeaderView.ResizeMode.Stretch)
-        self.manual_table.setMinimumHeight(120)
-        clay.addWidget(self.manual_table)
+        self.manual_table.setMinimumHeight(180)
+        self.manual_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        general_layout.addWidget(self.manual_table)
         mbtns = QHBoxLayout()
         add_btn = QPushButton("添加一行")
         add_btn.clicked.connect(lambda: self.manual_table.insertRow(
@@ -173,15 +203,27 @@ class SettingsDialog(QDialog):
         mbtns.addWidget(add_btn)
         mbtns.addWidget(del_btn)
         mbtns.addStretch(1)
-        clay.addLayout(mbtns)
+        general_layout.addLayout(mbtns)
 
+        general_layout.addStretch(1)
+        clay.addWidget(general)
+        clay.addStretch(1)
+        pages = list(self.platform_boxes.values()) + [general]
+        def select_page(index):
+            for i, page in enumerate(pages):
+                page.setVisible(i == index)
+            scroll.verticalScrollBar().setValue(0)
+        self.navigation.currentRowChanged.connect(select_page)
+        self.navigation.setCurrentRow(0)
         scroll.setWidget(container)
-        lay.addWidget(scroll, 1)
+        content.addWidget(scroll, 1)
+        lay.addLayout(content, 1)
 
         # ---- 保存（固定在窗口底部） ----
         btns = QHBoxLayout()
         btns.addStretch(1)
-        save_btn = QPushButton("保存")
+        save_btn = QPushButton("保存设置")
+        save_btn.setObjectName("primary")
         save_btn.setDefault(True)
         save_btn.clicked.connect(self._save)
         cancel_btn = QPushButton("取消")
