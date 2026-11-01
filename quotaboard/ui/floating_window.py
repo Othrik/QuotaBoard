@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -230,7 +231,7 @@ class _Row(QFrame):
             "#row { background: rgba(248,250,253,0.95); border-radius: 10px; }"
             "#row:hover { background: rgba(245,247,250,0.9); }")
         lay = QHBoxLayout(self)
-        lay.setContentsMargins(12, 12, 12, 12)
+        lay.setContentsMargins(12, 6, 12, 6)
         lay.setSpacing(10)
 
         level = _row_level(result)
@@ -243,23 +244,31 @@ class _Row(QFrame):
             lay.addWidget(logo)
 
         left = QVBoxLayout()
-        left.setSpacing(2)
+        left.setSpacing(3)
+        left.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         name = QLabel(result.label)
         name.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_MAIN};")
-        sub = f"{result.unit} · {result.updated_at}" if result.unit else result.updated_at
+        sub = result.updated_at.rsplit(" ", 1)[-1]
         if result.error:
             sub = f"失败：{result.error}"
-        elif result.sub_note:
-            sub = f"{result.sub_note} · {result.updated_at}"
-        elif result.total is not None and result.used is not None:
-            sub = f"已用 {result.used:,.0f} / {result.total:,.0f} {result.unit} · {result.updated_at}"
+        elif result.metrics:
+            notes = result.sub_note + " " + " ".join(str(m.get("note", "")) for m in result.metrics)
+            reset_5h = re.search(r"5h\s*重置\s*(\d{1,2}:\d{2})", notes, re.IGNORECASE)
+            reset_week = re.search(r"周\s*重置\s*(\d{2}-\d{2})", notes)
+            parts = []
+            if reset_5h:
+                parts.append(f"5h重置 {reset_5h.group(1)}")
+            if reset_week:
+                parts.append(f"周重置 {reset_week.group(1)}")
+            sub = " · ".join(parts)
         note = QLabel(sub)
         note.setStyleSheet(f"font-size: 11px; color: {TEXT_SUB};")
-        note.setWordWrap(True)
+        note.setWordWrap(False)
         note.setMaximumWidth(170)
         note.setToolTip(sub)
         left.addWidget(name)
         left.addWidget(note)
+        note.setVisible(bool(sub))
         lay.addLayout(left, 1)
 
         right = QVBoxLayout()
