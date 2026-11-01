@@ -97,6 +97,11 @@ class SettingsDialog(QDialog):
                     " border-radius: 6px; padding: 6px 8px;")
                 v.addWidget(guide)
 
+            if key == "gemini":
+                guide = QLabel("自动读取 Gemini 客户端登录态查询会员额度。首次读取被锁文件可能需要管理员授权，成功后加密缓存在本机。无需停留在用量页。")
+                guide.setWordWrap(True)
+                v.addWidget(guide)
+
             if key == "codex":
                 guide = QLabel(
                     "无需填写凭据：通过官方本地协议读取你 ChatGPT 账号的"

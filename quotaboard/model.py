@@ -49,6 +49,7 @@ PLATFORM_META: dict[str, dict] = {
         "label": "ChatGPT",
         "credential_fields": [],
     },
+    "gemini": {"label": "Gemini", "credential_fields": []},
     "doubao": {
         "label": "豆包",
         "credential_fields": [("manual_sessionid", "手动 sessionid（可选）")],

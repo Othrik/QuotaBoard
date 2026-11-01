@@ -1,6 +1,7 @@
 """Provider 注册表：按平台 key 找到对应适配器。"""
 from __future__ import annotations
 
+from .gemini_provider import GeminiProvider
 from .base import Provider
 from .codex_provider import CodexProvider
 from .deepseek_provider import DeepSeekProvider
@@ -14,6 +15,7 @@ from .zhipu_provider import ZhipuProvider
 PROVIDERS: dict[str, type[Provider]] = {
     "openai": OpenAIProvider,
     "codex": CodexProvider,
+    "gemini": GeminiProvider,
     "doubao": DoubaoProvider,
     "zhipu": ZhipuProvider,
     "zhipu_member": ZhipuMemberProvider,

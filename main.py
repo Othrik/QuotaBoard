@@ -29,6 +29,9 @@ def _acquire_single_instance() -> QSharedMemory | None:
 
 
 def main() -> int:
+    if "--gemini-vss" in sys.argv:
+        import gemini_vss_helper
+        return gemini_vss_helper.main()
     shm = _acquire_single_instance()
     if shm is None:
         print("QuotaBoard 已在运行，本实例退出。")
