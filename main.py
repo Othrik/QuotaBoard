@@ -11,6 +11,7 @@ import sys
 from PySide6.QtCore import QSharedMemory
 from PySide6.QtWidgets import QApplication, QDialog
 
+from quotaboard.ui.floating_window import make_app_icon
 from quotaboard.config import Config
 from quotaboard.scheduler import Scheduler
 from quotaboard.ui import FloatingWindow, SettingsDialog, TrayIcon
@@ -35,6 +36,7 @@ def main() -> int:
 
     app = QApplication(sys.argv)
     app.setApplicationName("QuotaBoard")
+    app.setWindowIcon(make_app_icon())
     app.setQuitOnLastWindowClosed(False)
 
     config = Config()
