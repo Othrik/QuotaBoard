@@ -317,6 +317,61 @@ class _Row(QFrame):
         self.setToolTip(tip)
 
 
+def _dock_quota_text(result: QuotaResult) -> str:
+    def red(text):
+        return f'<span style="color:{C_RED}; font-weight:700">{escape(text)}</span>'
+    if not result.ok:
+        return red("请求失败")
+    if not result.metrics:
+        text = escape(result.display)
+        if result.percent is not None:
+            text = re.sub(r"-?\d+(?:\.\d+)?%", lambda m: f'<span style="color:{_pct_color(result.percent)}; font-weight:700">{m.group(0)}</span>', text)
+        return text
+    metrics = []
+    for metric in result.metrics:
+        try:
+            pct = float(metric.get("percent"))
+        except (TypeError, ValueError):
+            continue
+        metrics.append((metric, pct))
+    for metric, pct in metrics:
+        if metric.get("label") == "周" and pct <= 0:
+            notes = str(metric.get("note", "")) + " " + result.sub_note
+            date = re.search(r"周\s*重置\s*(?:\d{4}-)?(\d{1,2})-(\d{1,2})", notes)
+            if date:
+                return red(f"{int(date[1])}月{int(date[2])}日周重置")
+            return red("周额度用完，等待重置")
+    parts = []
+    for metric, pct in metrics:
+        label = str(metric.get("label", ""))
+        if label == "5h" and pct <= 0:
+            notes = str(metric.get("note", "")) + " " + result.sub_note
+            time = re.search(r"5h\s*重置\s*(\d{1,2}:\d{2})", notes, re.I)
+            parts.append(red(f"5h {time[1]}重置" if time else "5h 等待重置"))
+        else:
+            parts.append(f'{escape(label)} <span style="color:{_pct_color(pct)}; font-weight:700">{pct:.0f}%</span>')
+    return " · ".join(parts)
+
+
+def _quota_details(result: QuotaResult) -> str:
+    lines = [result.label, f"剩余：{result.display}" if result.ok else f"查询失败：{result.error}"]
+    for metric in result.metrics or []:
+        try:
+            lines.append(f"{metric.get('label', '')} 剩余 {float(metric['percent']):.1f}%")
+        except (KeyError, TypeError, ValueError):
+            pass
+        if metric.get('note'):
+            lines.append(str(metric['note']))
+    if result.total is not None:
+        lines.append(f"总量：{result.total:,.2f} {result.unit}")
+    if result.used is not None:
+        lines.append(f"已用：{result.used:,.2f} {result.unit}")
+    if result.sub_note:
+        lines.append(result.sub_note)
+    lines.append(f"刷新时间：{result.updated_at}")
+    return "<qt>" + "<br>".join(escape(line) for line in dict.fromkeys(lines)) + "</qt>"
+
+
 class FloatingWindow(QWidget):
     refresh_requested = Signal()
     settings_requested = Signal()
@@ -537,24 +592,14 @@ class FloatingWindow(QWidget):
                 line.addWidget(logo)
             else:
                 line.addWidget(QLabel(result.label))
-            text = escape(result.display) if result.ok else "请求失败"
-            if result.ok and result.metrics:
-                parts = []
-                for metric in result.metrics:
-                    try:
-                        percent = float(metric.get("percent"))
-                    except (TypeError, ValueError):
-                        continue
-                    label = escape(str(metric.get("label", "")))
-                    parts.append(f'{label} <span style="color:{_pct_color(percent)}; font-weight:700">{percent:.0f}%</span>')
-                text = " · ".join(parts)
-            elif result.ok and result.percent is not None:
-                text = re.sub(r"-?\d+(?:\.\d+)?%", lambda m: f'<span style="color:{_pct_color(result.percent)}; font-weight:700">{m.group(0)}</span>', text)
+            text = _dock_quota_text(result)
             value = QLabel(text)
             value.setTextFormat(Qt.TextFormat.RichText)
             value.setStyleSheet(f"font-size: 12px; color: {TEXT_MAIN if result.ok else C_RED};")
             line.addWidget(value)
-            cell.setToolTip(f"{result.label}\n{result.sub_note}\n{result.error}")
+            cell.setToolTip(_quota_details(result))
+            for child in cell.findChildren(QWidget):
+                child.setToolTip(_quota_details(result))
             self.dock_layout.addWidget(cell)
             cell.show()
         if not self._dock_rows:
