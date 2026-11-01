@@ -12,11 +12,11 @@ from typing import Optional
 from PySide6.QtCore import QPoint, QRectF, Qt, Signal
 from PySide6.QtGui import (
     QAction, QColor, QFont, QGuiApplication, QIcon, QImage, QPainter, QPen,
-    QPixmap,
+    QPixmap, QPalette,
 )
 from PySide6.QtWidgets import (
     QApplication, QBoxLayout, QScrollArea, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel,
-    QMenu, QPushButton, QProgressBar, QVBoxLayout, QWidget,
+    QMenu, QToolTip, QPushButton, QProgressBar, QVBoxLayout, QWidget,
 )
 
 from ..config import Config
@@ -356,12 +356,12 @@ def _dock_quota_text(result: QuotaResult) -> str:
 
 def _quota_details(result: QuotaResult) -> str:
     rows = []
-    def row(label, value, color=TEXT_MAIN, bold=False):
+    def row(label, value, color="#111111", bold=False):
         weight = "font-weight:600;" if bold else ""
-        rows.append(f'<tr><td style="color:{TEXT_SUB};padding:4px 16px 4px 0;">{escape(label)}</td><td align="right" style="padding:4px 0;color:{color};{weight}">{escape(str(value))}</td></tr>')
+        rows.append(f'<tr><td style="color:#111111;padding:4px 16px 4px 0;">{escape(label)}</td><td align="right" style="padding:4px 0;color:{color};{weight}">{escape(str(value))}</td></tr>')
     if not result.ok:
-        row("查询状态", "暂时无法获取", C_RED, True)
-        rows.append(f'<tr><td colspan="2" style="color:{TEXT_SUB};padding:6px 0;">{escape(result.error)}</td></tr>')
+        row("查询状态", "暂时无法获取", "#111111", True)
+        rows.append(f'<tr><td colspan="2" style="color:#111111;padding:6px 0;">{escape(result.error)}</td></tr>')
     elif result.metrics:
         for metric in result.metrics:
             try:
@@ -369,13 +369,13 @@ def _quota_details(result: QuotaResult) -> str:
             except (KeyError, TypeError, ValueError):
                 continue
             label = str(metric.get('label', ''))
-            row("5 小时剩余" if label == '5h' else "每周剩余" if label == '周' else label, f"{pct:.0f}%", _pct_color(pct), True)
+            row("5 小时剩余" if label == '5h' else "每周剩余" if label == '周' else label, f"{pct:.0f}%", "#111111", True)
             note = str(metric.get('note', ''))
             reset = re.sub(r"^(?:5h|周)重置\s*", "", note)
             if reset:
                 row("重置时间", reset)
     else:
-        row("当前余额", result.display, TEXT_MAIN, True)
+        row("当前余额", result.display, "#111111", True)
         if result.total is not None:
             row("总量", f"{result.total:,.2f} {result.unit}")
         if result.used is not None:
@@ -385,7 +385,7 @@ def _quota_details(result: QuotaResult) -> str:
     return (f'<qt><table width="260" cellspacing="0" cellpadding="0">'
             f'<tr><td colspan="2" style="padding:0 0 10px;"><b>{escape(result.label)}</b></td></tr>'
             + ''.join(rows) +
-            f'<tr><td colspan="2" style="padding:12px 0 0;color:{TEXT_SUB};font-size:10px;">刷新时间 · {escape(result.updated_at)}</td></tr></table></qt>')
+            f'<tr><td colspan="2" style="padding:12px 0 0;color:#111111;font-size:10px;">刷新时间 · {escape(result.updated_at)}</td></tr></table></qt>')
 
 
 class FloatingWindow(QWidget):
@@ -411,7 +411,12 @@ class FloatingWindow(QWidget):
             | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("QuotaBoard")
-        self.setStyleSheet("QToolTip { background-color: #FFFFFF; color: #202938; border: 1px solid #DFE6EF; border-radius: 10px; padding: 14px; font-family: Segoe UI; font-size: 12px; }")
+        app = QApplication.instance()
+        app.setStyleSheet(app.styleSheet() + "\nQToolTip { background-color: #FFFFFF; color: #111111; border: 1px solid #DDE3EB; padding: 14px; font-size: 12px; }")
+        tooltip_palette = QPalette()
+        tooltip_palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#FFFFFF"))
+        tooltip_palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#111111"))
+        QToolTip.setPalette(tooltip_palette)
         self.setWindowIcon(make_app_icon())
 
         self._build_ui()
