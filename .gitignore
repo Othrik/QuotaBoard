@@ -27,3 +27,9 @@ tools/probe_webs_api.py
 *-preview.png
 ui_update.py
 preview_ui.py
+
+.deps-fixed/
+.tools/
+test-temp/
+build-fixed/
+build-isolated/
