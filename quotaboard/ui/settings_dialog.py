@@ -12,7 +12,7 @@ from ..config import Config
 from ..model import PLATFORM_META
 from ..providers import PROVIDERS
 
-FIELDS_LABEL = {"api_key": "API Key", "ak": "Access Key", "sk": "Secret Key",
+FIELDS_LABEL = {"system_token": "系统访问令牌", "user_id": "用户 ID", "api_key": "API Key", "ak": "Access Key", "sk": "Secret Key",
                 "manual_token": "手动 Token"}
 
 
@@ -95,6 +95,11 @@ class SettingsDialog(QDialog):
                 guide.setStyleSheet(
                     "font-size: 11px; color: #646A73; background: #F5F7FA;"
                     " border-radius: 6px; padding: 6px 8px;")
+                v.addWidget(guide)
+
+            if key == "dmxapi":
+                guide = QLabel("账户人民币余额查询：在 dmxapi.cn 的个人资料中查看用户 ID，并在更多选项中获取系统访问令牌。这里不是模型调用 API Key；重新生成令牌会使旧令牌失效。")
+                guide.setWordWrap(True)
                 v.addWidget(guide)
 
             if key == "gemini":

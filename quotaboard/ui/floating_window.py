@@ -38,6 +38,7 @@ PLATFORM_LOGO = {
     # ChatGPT（ChatGPT Plus / Codex）全部使用 OpenAI 官方图标
     "chatgpt_plus": "openai.png",
     "codex": "openai.png",
+    "dmxapi": "dmxapi.png",
     "gemini": "gemini.png",
     "doubao": "doubao.png",
     "zhipu": "zhipu.png",
@@ -430,7 +431,7 @@ class FloatingWindow(QWidget):
                 w.deleteLater()
 
         rows: list[QuotaResult] = []
-        for key in ("openai", "codex", "gemini", "doubao",
+        for key in ("openai", "dmxapi", "codex", "gemini", "doubao",
                     "zhipu", "zhipu_member", "kimi", "deepseek", "volc"):
             r = self._results.get(key)
             if r is not None:

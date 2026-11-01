@@ -49,6 +49,7 @@ PLATFORM_META: dict[str, dict] = {
         "label": "ChatGPT",
         "credential_fields": [],
     },
+    "dmxapi": {"label": "DMXAPI", "credential_fields": [("system_token", "系统访问令牌"), ("user_id", "用户 ID")]},
     "gemini": {"label": "Gemini", "credential_fields": []},
     "doubao": {
         "label": "豆包",

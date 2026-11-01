@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .gemini_provider import GeminiProvider
+from .dmxapi_provider import DMXAPIProvider
 from .base import Provider
 from .codex_provider import CodexProvider
 from .deepseek_provider import DeepSeekProvider
@@ -14,6 +15,7 @@ from .zhipu_provider import ZhipuProvider
 
 PROVIDERS: dict[str, type[Provider]] = {
     "openai": OpenAIProvider,
+    "dmxapi": DMXAPIProvider,
     "codex": CodexProvider,
     "gemini": GeminiProvider,
     "doubao": DoubaoProvider,
