@@ -4,8 +4,8 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFormLayout, QFrame, QGroupBox,
-    QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMessageBox, QPushButton,
-    QListWidget, QScrollArea, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
+    QListWidget, QScrollArea, QSpinBox, QVBoxLayout, QWidget,
 )
 
 from ..config import Config
@@ -78,8 +78,6 @@ class SettingsDialog(QDialog):
         self.volc_actions: dict[str, QComboBox] = {}
 
         for key, meta in PLATFORM_META.items():
-            if key == "manual":
-                continue
             box = QGroupBox(meta["label"])
             v = QVBoxLayout(box)
             v.setSpacing(6)
@@ -171,7 +169,7 @@ class SettingsDialog(QDialog):
 
         general = QWidget()
         general_layout = QVBoxLayout(general)
-        self.navigation.addItem("通用与手动额度")
+        self.navigation.addItem("通用设置")
 
         # ---- 刷新间隔 ----
         form = QFormLayout()
@@ -180,30 +178,6 @@ class SettingsDialog(QDialog):
         self.interval_spin.setSuffix(" 分钟")
         form.addRow("自动刷新间隔", self.interval_spin)
         general_layout.addLayout(form)
-
-        # ---- 手动额度 ----
-        mtitle = QLabel("手动额度（豆包等无公开接口的平台，手动维护）")
-        mtitle.setStyleSheet("font-size: 14px; font-weight: 600;")
-        general_layout.addWidget(mtitle)
-        self.manual_table = QTableWidget(0, 5)
-        self.manual_table.setHorizontalHeaderLabels(["名称", "总量", "已用", "单位", "备注"])
-        self.manual_table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Stretch)
-        self.manual_table.horizontalHeader().setSectionResizeMode(
-            4, QHeaderView.ResizeMode.Stretch)
-        self.manual_table.setMinimumHeight(180)
-        self.manual_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        general_layout.addWidget(self.manual_table)
-        mbtns = QHBoxLayout()
-        add_btn = QPushButton("添加一行")
-        add_btn.clicked.connect(lambda: self.manual_table.insertRow(
-            self.manual_table.rowCount()))
-        del_btn = QPushButton("删除选中行")
-        del_btn.clicked.connect(self._delete_manual_row)
-        mbtns.addWidget(add_btn)
-        mbtns.addWidget(del_btn)
-        mbtns.addStretch(1)
-        general_layout.addLayout(mbtns)
 
         general_layout.addStretch(1)
         clay.addWidget(general)
@@ -235,8 +209,6 @@ class SettingsDialog(QDialog):
     # ---------- 载入 ----------
     def _load(self) -> None:
         for key, meta in PLATFORM_META.items():
-            if key == "manual":
-                continue
             self.enable_checks[key].setChecked(self.config.is_enabled(key))
             for field, _ in meta["credential_fields"]:
                 saved = self.config.get_credential(key, field)
@@ -249,15 +221,6 @@ class SettingsDialog(QDialog):
                     1 if action == "ListModelInferenceLimits" else 0)
 
         self.interval_spin.setValue(self.config.refresh_interval_minutes)
-
-        self.manual_table.setRowCount(0)
-        for name, e in self.config.manual_entries.items():
-            r = self.manual_table.rowCount()
-            self.manual_table.insertRow(r)
-            vals = [name, str(e.get("total", "")), str(e.get("used", "")),
-                    str(e.get("unit", "")), str(e.get("note", ""))]
-            for c, v in enumerate(vals):
-                self.manual_table.setItem(r, c, QTableWidgetItem(v))
 
     # ---------- 测试 ----------
     def _test(self, key: str) -> None:
@@ -281,16 +244,8 @@ class SettingsDialog(QDialog):
             QMessageBox.warning(self, "连接失败", f"{result.label}：{result.error}")
 
     # ---------- 保存 ----------
-    def _delete_manual_row(self) -> None:
-        rows = sorted({i.row() for i in self.manual_table.selectedIndexes()},
-                      reverse=True)
-        for r in rows:
-            self.manual_table.removeRow(r)
-
     def _save(self) -> None:
         for key, meta in PLATFORM_META.items():
-            if key == "manual":
-                continue
             self.config.set_enabled(key, self.enable_checks[key].isChecked())
             for field, _ in meta["credential_fields"]:
                 text = self.field_inputs[key][field].text().strip()
@@ -303,27 +258,6 @@ class SettingsDialog(QDialog):
                     else "GetUsageDetails")
 
         self.config.refresh_interval_minutes = self.interval_spin.value()
-
-        manual: dict[str, dict] = {}
-        for r in range(self.manual_table.rowCount()):
-            def cell(c: int) -> str:
-                it = self.manual_table.item(r, c)
-                return it.text().strip() if it else ""
-            name = cell(0)
-            if not name:
-                continue
-            try:
-                total = float(cell(1)) if cell(1) else 0.0
-                used = float(cell(2)) if cell(2) else 0.0
-            except ValueError:
-                QMessageBox.warning(self, "输入无效",
-                                    f"「{name}」的总量/已用必须是数字")
-                return
-            manual[name] = {
-                "total": total, "used": used,
-                "unit": cell(3), "note": cell(4),
-            }
-        self.config._data["manual"] = manual
 
         try:
             self.config.save()

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from .base import Provider
-from .chatgpt_plus_provider import ChatGPTPlusProvider
 from .codex_provider import CodexProvider
 from .deepseek_provider import DeepSeekProvider
 from .doubao_provider import DoubaoProvider
@@ -14,7 +13,6 @@ from .zhipu_provider import ZhipuProvider
 
 PROVIDERS: dict[str, type[Provider]] = {
     "openai": OpenAIProvider,
-    "chatgpt_plus": ChatGPTPlusProvider,
     "codex": CodexProvider,
     "doubao": DoubaoProvider,
     "zhipu": ZhipuProvider,

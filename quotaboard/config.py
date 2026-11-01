@@ -64,7 +64,7 @@ def decrypt_secret(enc: str) -> str:
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "version": 1,
-    "refresh_interval_minutes": 30,
+    "refresh_interval_minutes": 1,
     "startup_with_windows": False,
     "platforms": {
         "openai": {"enabled": False, "api_key_enc": ""},
@@ -124,7 +124,7 @@ class Config:
 
     @property
     def refresh_interval_minutes(self) -> int:
-        return int(self._data.get("refresh_interval_minutes", 30))
+        return int(self._data.get("refresh_interval_minutes", 1))
 
     @refresh_interval_minutes.setter
     def refresh_interval_minutes(self, minutes: int) -> None:

@@ -353,7 +353,7 @@ class FloatingWindow(QWidget):
         self.header.setObjectName("header")
         self.header.setCursor(Qt.CursorShape.PointingHandCursor)
         hlay = QHBoxLayout(self.header)
-        hlay.setContentsMargins(14, 10, 14, 6)
+        hlay.setContentsMargins(10, 4, 10, 4)
         self.head_title = QLabel("AI 额度")
         self.head_title.setStyleSheet(f"font-size: 15px; font-weight: 600; color: {TEXT_MAIN};")
         hlay.addWidget(self.head_title)
@@ -365,13 +365,17 @@ class FloatingWindow(QWidget):
         self.head_summary = QLabel("")
         self.head_summary.setStyleSheet(f"font-size: 12px; color: {TEXT_SUB};")
         hlay.addWidget(self.head_summary)
-        for text, tip, signal in (("刷新", "立即刷新", self.refresh_requested), ("设置", "打开设置", self.settings_requested)):
+        self.header_buttons = []
+        for text, tip, signal in (("刷新", "立即刷新", self.refresh_requested),):
             button = QPushButton(text)
             button.setFixedSize(34, 26)
             button.setToolTip(tip)
             button.setStyleSheet("QPushButton { border: none; border-radius: 6px; color: #667085; font-size: 11px; } QPushButton:hover { background: #EAF0FC; color: #4169E1; }")
             button.clicked.connect(signal.emit)
             hlay.addWidget(button)
+            self.header_buttons.append(button)
+        # Keep the header compact even when the window retains extra height.
+        self.header.setFixedHeight(max(38, self.head_title.fontMetrics().height() + 12))
         self.card_lay.addWidget(self.header)
 
         # 内容区
@@ -401,7 +405,7 @@ class FloatingWindow(QWidget):
                 w.deleteLater()
 
         rows: list[QuotaResult] = []
-        for key in ("openai", "chatgpt_plus", "codex", "doubao",
+        for key in ("openai", "codex", "doubao",
                     "zhipu", "zhipu_member", "kimi", "deepseek", "volc"):
             r = self._results.get(key)
             if r is not None:
@@ -413,21 +417,6 @@ class FloatingWindow(QWidget):
                         rows.append(QuotaResult(**cached))
                     except TypeError:
                         pass
-
-        # 手动条目
-        for name, entry in self.config.manual_entries.items():
-            try:
-                total = float(entry.get("total", 0) or 0)
-                used = float(entry.get("used", 0) or 0)
-            except (TypeError, ValueError):
-                total = used = 0.0
-            unit = str(entry.get("unit", "") or "")
-            pct = (total - used) / total * 100 if total > 0 else None
-            rows.append(QuotaResult(
-                platform="manual", label=name,
-                display=f"{total - used:,.0f}" if pct is not None else "—",
-                available=max(0.0, total - used), total=total, used=used,
-                unit=unit, percent=pct, ok=True))
 
         if not rows:
             tip = QLabel("尚未配置平台：右键 → 设置")
@@ -453,6 +442,9 @@ class FloatingWindow(QWidget):
         self.update_size()
 
     def update_size(self) -> None:
+        self.head_title.setVisible(self.expanded)
+        for button in self.header_buttons:
+            button.setVisible(self.expanded)
         # 折叠/展开时真正隐藏/显示内容行（QBoxLayout 无 hide，
         # 必须逐个操作子 widget，否则行仍占位导致显示错乱）
         for i in range(self.body.count()):
@@ -481,7 +473,7 @@ class FloatingWindow(QWidget):
         else:
             # 折叠态同样走 adjustSize：body 行已隐藏，窗口自适应为头部高度，
             # 避免固定像素高度在高 DPI / 字体缩放下截断 header
-            self.setFixedWidth(210)
+            self.setFixedWidth(max(76, 68 + 18 * self.head_logos.count()))
             self.setMinimumHeight(0)
             self.setMaximumHeight(16777215)
             self.adjustSize()

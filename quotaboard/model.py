@@ -45,10 +45,6 @@ class QuotaResult:
 # 平台注册元信息（展示顺序、设置项名称等）
 PLATFORM_META: dict[str, dict] = {
     "openai": {"label": "OpenAI", "credential_fields": [("api_key", "API Key")]},
-    "chatgpt_plus": {
-        "label": "ChatGPT Plus",
-        "credential_fields": [("session_token", "登录 Token")],
-    },
     "codex": {
         "label": "ChatGPT",
         "credential_fields": [],
@@ -71,5 +67,4 @@ PLATFORM_META: dict[str, dict] = {
         "label": "火山方舟",
         "credential_fields": [("ak", "Access Key"), ("sk", "Secret Key")],
     },
-    "manual": {"label": "手动额度", "credential_fields": []},
 }

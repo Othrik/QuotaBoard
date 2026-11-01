@@ -109,7 +109,7 @@ try:
     w.toggle()
     app.processEvents()
     print("collapsed w/h:", w.width(), w.height())
-    assert w.width() == 210
+    assert w.width() == max(76, 68 + 18 * w.head_logos.count())
     assert w.height() <= 90, f"折叠高度 {w.height()} 应 <=90"
     # 折叠态头部右侧显示正在使用的 AI 图标（codex=ChatGPT、doubao 共 2 个）
     print("head logos:", len(head_logos))
@@ -125,8 +125,8 @@ try:
     # 折叠态点击头部 → 展开（无 +/- 按钮，直接点击切换）
     from PySide6.QtGui import QMouseEvent
     from PySide6.QtCore import QPointF, QEvent, Qt
-    hc = w.header.rect().center()
-    hg = w.header.mapToGlobal(hc)
+    hc = w.header.mapTo(w, w.header.rect().center())
+    hg = w.mapToGlobal(hc)
     ev_p = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(hc),
                        QPointF(hg), Qt.MouseButton.LeftButton,
                        Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
@@ -146,6 +146,8 @@ try:
     assert all(visible), f"展开态行应全部可见，实际 {visible}"
     assert w.expanded is True
 
+    hc = w.header.mapTo(w, w.header.rect().center())
+    hg = w.mapToGlobal(hc)
     # 展开态点击头部 → 收起
     ev_p2 = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(hc),
                         QPointF(hg), Qt.MouseButton.LeftButton,
@@ -157,7 +159,7 @@ try:
     w.mouseReleaseEvent(ev_r2)
     app.processEvents()
     print("collapsed again w/h:", w.width(), w.height())
-    assert w.width() == 210 and w.expanded is False
+    assert w.width() == max(76, 68 + 18 * w.head_logos.count()) and w.expanded is False
 
     print("GUI FLOAT SMOKE OK")
 except Exception:
