@@ -159,6 +159,17 @@ class Config:
     def manual_entries(self) -> dict[str, dict[str, Any]]:
         return self._data.setdefault("manual", {})
 
+    @property
+    def platform_order(self) -> list[str]:
+        from .model import PLATFORM_META
+        saved = self._data.get("platform_order", [])
+        saved = saved if isinstance(saved, list) else []
+        return list(dict.fromkeys([k for k in saved if isinstance(k, str) and k in PLATFORM_META] + list(PLATFORM_META)))
+
+    @platform_order.setter
+    def platform_order(self, keys: list[str]) -> None:
+        self._data["platform_order"] = list(keys)
+
     # ---- 缓存 ----
     def get_cache(self, key: str) -> Optional[dict[str, Any]]:
         return self._data.setdefault("cache", {}).get(key)

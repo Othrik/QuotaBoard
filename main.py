@@ -52,6 +52,7 @@ def main() -> int:
     def open_settings() -> None:
         dlg = SettingsDialog(config, window)
         if dlg.exec() == QDialog.DialogCode.Accepted:
+            window.render()
             scheduler.apply_interval()
             scheduler.refresh_all()
 

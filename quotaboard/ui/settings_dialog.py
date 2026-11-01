@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFormLayout, QFrame, QGroupBox,
     QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
-    QListWidget, QScrollArea, QSpinBox, QVBoxLayout, QWidget,
+    QAbstractItemView, QListWidget, QListWidgetItem, QScrollArea, QSpinBox, QVBoxLayout, QWidget,
 )
 
 from ..config import Config
@@ -189,6 +189,12 @@ class SettingsDialog(QDialog):
         form.addRow("自动刷新间隔", self.interval_spin)
         general_layout.addLayout(form)
 
+        general_layout.addWidget(QLabel("AI 显示顺序（拖动排序，保存后生效）"))
+        self.order_list = QListWidget()
+        self.order_list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.order_list.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.order_list.setMinimumHeight(260)
+        general_layout.addWidget(self.order_list)
         general_layout.addStretch(1)
         clay.addWidget(general)
         clay.addStretch(1)
@@ -231,6 +237,11 @@ class SettingsDialog(QDialog):
                     1 if action == "ListModelInferenceLimits" else 0)
 
         self.interval_spin.setValue(self.config.refresh_interval_minutes)
+        self.order_list.clear()
+        for key in self.config.platform_order:
+            item = QListWidgetItem(PLATFORM_META[key]["label"])
+            item.setData(Qt.ItemDataRole.UserRole, key)
+            self.order_list.addItem(item)
 
     # ---------- 测试 ----------
     def _test(self, key: str) -> None:
@@ -268,6 +279,8 @@ class SettingsDialog(QDialog):
                     else "GetUsageDetails")
 
         self.config.refresh_interval_minutes = self.interval_spin.value()
+        self.config.platform_order = [self.order_list.item(i).data(Qt.ItemDataRole.UserRole)
+                                      for i in range(self.order_list.count())]
 
         try:
             self.config.save()

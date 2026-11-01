@@ -431,8 +431,7 @@ class FloatingWindow(QWidget):
                 w.deleteLater()
 
         rows: list[QuotaResult] = []
-        for key in ("openai", "dmxapi", "codex", "gemini", "doubao",
-                    "zhipu", "zhipu_member", "kimi", "deepseek", "volc"):
+        for key in self.config.platform_order:
             r = self._results.get(key)
             if r is not None:
                 rows.append(r)
