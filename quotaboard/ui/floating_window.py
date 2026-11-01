@@ -14,7 +14,7 @@ from PySide6.QtGui import (
     QPixmap,
 )
 from PySide6.QtWidgets import (
-    QApplication, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel,
+    QApplication, QBoxLayout, QScrollArea, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel,
     QMenu, QPushButton, QProgressBar, QVBoxLayout, QWidget,
 )
 
@@ -323,6 +323,8 @@ class FloatingWindow(QWidget):
         super().__init__()
         self.config = config
         self.scheduler = scheduler
+        self._dock_edge = None
+        self._dock_rows = []
         self.expanded = True
         self._drag_pos: Optional[QPoint] = None
         self._moved = False
@@ -391,6 +393,18 @@ class FloatingWindow(QWidget):
         self.body = QVBoxLayout()
         self.body.setSpacing(6)
         self.card_lay.addLayout(self.body)
+        self.dock = QScrollArea(self.card)
+        self.dock.setFrameShape(QFrame.Shape.NoFrame)
+        self.dock.setWidgetResizable(True)
+        self.dock.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        self.dock_content = QWidget()
+        self.dock_content.setStyleSheet("background: transparent;")
+        self.dock_layout = QBoxLayout(QBoxLayout.Direction.LeftToRight, self.dock_content)
+        self.dock_layout.setContentsMargins(10, 5, 10, 5)
+        self.dock_layout.setSpacing(14)
+        self.dock.setWidget(self.dock_content)
+        self.card_lay.addWidget(self.dock)
+        self.dock.hide()
 
     def apply_shadow(self) -> None:
         sh = QGraphicsDropShadowEffect(self)
@@ -448,9 +462,19 @@ class FloatingWindow(QWidget):
             if logo is not None:
                 self.head_logos.addWidget(logo)
 
+        self._dock_rows = rows
         self.update_size()
 
     def update_size(self) -> None:
+        self.setMinimumSize(0, 0)
+        self.setMaximumSize(16777215, 16777215)
+        self.card.graphicsEffect().setEnabled(not bool(self._dock_edge))
+        self.header.setVisible(not self._dock_edge)
+        self.dock.setVisible(bool(self._dock_edge))
+        if self._dock_edge:
+            self._update_dock()
+            return
+        self.layout().setContentsMargins(14, 14, 14, 14)
         self.card_lay.setContentsMargins(*( (8, 4, 8, 8) if self.expanded else (0, 0, 0, 0) ))
         self.card_lay.setSpacing(6 if self.expanded else 0)
         self.header.layout().setContentsMargins(*( (10, 4, 10, 4) if self.expanded else (8, 8, 8, 8) ))
@@ -493,8 +517,64 @@ class FloatingWindow(QWidget):
             self.setMaximumHeight(16777215)
             self.adjustSize()
 
+    def _update_dock(self) -> None:
+        while self.dock_layout.count():
+            item = self.dock_layout.takeAt(0)
+            if item.widget():
+                item.widget().hide()
+                item.widget().deleteLater()
+        horizontal = self._dock_edge in ("top", "bottom")
+        self.dock_layout.setDirection(QBoxLayout.Direction.LeftToRight if horizontal else QBoxLayout.Direction.TopToBottom)
+        for result in self._dock_rows:
+            cell = QWidget()
+            line = QHBoxLayout(cell)
+            line.setContentsMargins(0, 0, 0, 0)
+            line.setSpacing(6)
+            logo = _platform_logo(result.platform, 18)
+            if logo:
+                line.addWidget(logo)
+            else:
+                line.addWidget(QLabel(result.label))
+            text = result.display if result.ok else "请求失败"
+            if result.ok and result.metrics:
+                text = " · ".join(f"{m.get('label', '')} {float(m['percent']):.0f}%" for m in result.metrics if m.get('percent') is not None)
+            value = QLabel(text)
+            value.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {TEXT_MAIN if result.ok else C_RED};")
+            line.addWidget(value)
+            cell.setToolTip(f"{result.label}\n{result.sub_note}\n{result.error}")
+            self.dock_layout.addWidget(cell)
+            cell.show()
+        if not self._dock_rows:
+            self.dock_layout.addWidget(QLabel("右键设置平台"))
+        for i in range(self.body.count()):
+            if self.body.itemAt(i).widget():
+                self.body.itemAt(i).widget().hide()
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.card_lay.setContentsMargins(0, 0, 0, 0)
+        self.card_lay.setSpacing(0)
+        self.dock_layout.activate()
+        hint = self.dock_content.sizeHint()
+        geo = self.screen().availableGeometry()
+        if horizontal:
+            self.setFixedSize(min(geo.width(), hint.width() + 4), 36)
+        else:
+            self.setFixedSize(hint.width() + 4, min(geo.height(), hint.height() + 4))
+        self._anchor_dock()
+
+    def _anchor_dock(self) -> None:
+        geo = self.screen().availableGeometry()
+        x = max(geo.left(), min(self.x(), geo.right() + 1 - self.width()))
+        y = max(geo.top(), min(self.y(), geo.bottom() + 1 - self.height()))
+        if self._dock_edge == "top": y = geo.top()
+        if self._dock_edge == "bottom": y = geo.bottom() + 1 - self.height()
+        if self._dock_edge == "left": x = geo.left()
+        if self._dock_edge == "right": x = geo.right() + 1 - self.width()
+        self.move(x, y)
+
     # ---------- 折叠/展开 ----------
     def toggle(self) -> None:
+        if self._dock_edge:
+            return
         self.expanded = not self.expanded
         self.update_size()
 
@@ -507,6 +587,11 @@ class FloatingWindow(QWidget):
 
     def mouseMoveEvent(self, event) -> None:
         if self._drag_pos is not None and event.buttons() & Qt.MouseButton.LeftButton:
+            if self._dock_edge:
+                self._dock_edge = None
+                self.expanded = True
+                self.update_size()
+                self._drag_pos = QPoint(self.width() // 2, 24)
             self.move(event.globalPosition().toPoint() - self._drag_pos)
             self._moved = True
         super().mouseMoveEvent(event)
@@ -521,6 +606,10 @@ class FloatingWindow(QWidget):
         w, h = rect.width(), rect.height()
         left, top = geo.left(), geo.top()
         right, bottom = geo.right() + 1, geo.bottom() + 1
+        distances = {"top": abs(y-top), "bottom": abs(bottom-y-h),
+                     "left": abs(x-left), "right": abs(right-x-w)}
+        edge = min(distances, key=distances.get)
+        self._dock_edge = edge if distances[edge] <= SNAP_THRESHOLD else None
         if abs(x - left) <= SNAP_THRESHOLD:
             x = left
         elif abs(right - (x + w)) <= SNAP_THRESHOLD:
@@ -543,6 +632,7 @@ class FloatingWindow(QWidget):
             else:
                 # 拖动结束：靠近屏幕边缘时吸顶贴边
                 self.move(*self._snap_rect(self.frameGeometry()))
+                self.update_size()
             self._drag_pos = None
         super().mouseReleaseEvent(event)
 
