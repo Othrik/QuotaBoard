@@ -337,9 +337,10 @@ def _dock_quota_text(result: QuotaResult) -> str:
     for metric, pct in metrics:
         if metric.get("label") == "周" and pct <= 0:
             notes = str(metric.get("note", "")) + " " + result.sub_note
-            date = re.search(r"周\s*重置\s*(?:\d{4}-)?(\d{1,2})-(\d{1,2})", notes)
+            date = re.search(r"周\s*重置\s*(?:\d{4}-)?(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}:\d{2}))?", notes)
             if date:
-                return red(f"{int(date[1])}月{int(date[2])}日周重置")
+                clock = f" {date[3]}" if date[3] else ""
+                return red(f"{int(date[1])}月{int(date[2])}日{clock}周重置")
             return red("周额度用完，等待重置")
     parts = []
     for metric, pct in metrics:
@@ -354,22 +355,37 @@ def _dock_quota_text(result: QuotaResult) -> str:
 
 
 def _quota_details(result: QuotaResult) -> str:
-    lines = [result.label, f"剩余：{result.display}" if result.ok else f"查询失败：{result.error}"]
-    for metric in result.metrics or []:
-        try:
-            lines.append(f"{metric.get('label', '')} 剩余 {float(metric['percent']):.1f}%")
-        except (KeyError, TypeError, ValueError):
-            pass
-        if metric.get('note'):
-            lines.append(str(metric['note']))
-    if result.total is not None:
-        lines.append(f"总量：{result.total:,.2f} {result.unit}")
-    if result.used is not None:
-        lines.append(f"已用：{result.used:,.2f} {result.unit}")
-    if result.sub_note:
-        lines.append(result.sub_note)
-    lines.append(f"刷新时间：{result.updated_at}")
-    return "<qt>" + "<br>".join(escape(line) for line in dict.fromkeys(lines)) + "</qt>"
+    rows = []
+    def row(label, value, color=TEXT_MAIN, bold=False):
+        weight = "font-weight:600;" if bold else ""
+        rows.append(f'<tr><td style="color:{TEXT_SUB};padding:4px 16px 4px 0;">{escape(label)}</td><td align="right" style="padding:4px 0;color:{color};{weight}">{escape(str(value))}</td></tr>')
+    if not result.ok:
+        row("查询状态", "暂时无法获取", C_RED, True)
+        rows.append(f'<tr><td colspan="2" style="color:{TEXT_SUB};padding:6px 0;">{escape(result.error)}</td></tr>')
+    elif result.metrics:
+        for metric in result.metrics:
+            try:
+                pct = float(metric['percent'])
+            except (KeyError, TypeError, ValueError):
+                continue
+            label = str(metric.get('label', ''))
+            row("5 小时剩余" if label == '5h' else "每周剩余" if label == '周' else label, f"{pct:.0f}%", _pct_color(pct), True)
+            note = str(metric.get('note', ''))
+            reset = re.sub(r"^(?:5h|周)重置\s*", "", note)
+            if reset:
+                row("重置时间", reset)
+    else:
+        row("当前余额", result.display, TEXT_MAIN, True)
+        if result.total is not None:
+            row("总量", f"{result.total:,.2f} {result.unit}")
+        if result.used is not None:
+            row("已用", f"{result.used:,.2f} {result.unit}")
+    if result.sub_note and not result.metrics:
+        row("说明", result.sub_note)
+    return (f'<qt><table width="260" cellspacing="0" cellpadding="0">'
+            f'<tr><td colspan="2" style="padding:0 0 10px;"><b>{escape(result.label)}</b></td></tr>'
+            + ''.join(rows) +
+            f'<tr><td colspan="2" style="padding:12px 0 0;color:{TEXT_SUB};font-size:10px;">刷新时间 · {escape(result.updated_at)}</td></tr></table></qt>')
 
 
 class FloatingWindow(QWidget):
@@ -395,6 +411,7 @@ class FloatingWindow(QWidget):
             | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("QuotaBoard")
+        self.setStyleSheet("QToolTip { background-color: #FFFFFF; color: #202938; border: 1px solid #DFE6EF; border-radius: 10px; padding: 14px; font-family: Segoe UI; font-size: 12px; }")
         self.setWindowIcon(make_app_icon())
 
         self._build_ui()
