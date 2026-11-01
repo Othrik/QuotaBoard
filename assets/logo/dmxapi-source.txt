@@ -1,1 +1,1 @@
-Official DMXAPI website favicon: https://www.dmxapi.cn/favicon.ico (retrieved 2026-11-02). Used to identify the connected service; converted to PNG.
+User supplied DMXAPI logo: D.png, provided 2026-11-02.
