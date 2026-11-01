@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -315,6 +316,7 @@ class FloatingWindow(QWidget):
         self._drag_pos: Optional[QPoint] = None
         self._moved = False
         self._results: dict[str, QuotaResult] = {}
+        self._last_refresh: Optional[str] = None  # 最近一次刷新时间（HH:MM）
 
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
@@ -378,6 +380,7 @@ class FloatingWindow(QWidget):
     # ---------- 数据 ----------
     def on_results(self, results: dict[str, QuotaResult]) -> None:
         self._results = results
+        self._last_refresh = datetime.now().strftime("%H:%M")
         self.render()
 
     def render(self) -> None:
@@ -452,6 +455,13 @@ class FloatingWindow(QWidget):
             w = self.head_logos.itemAt(i).widget()
             if w is not None:
                 w.setVisible(not self.expanded)
+        # 展开态头部右侧显示最近刷新时间；折叠态隐藏（让位给 AI 图标）
+        if self.expanded and self._last_refresh:
+            self.head_summary.setText(f"刷新 {self._last_refresh}")
+            self.head_summary.setVisible(True)
+        else:
+            self.head_summary.clear()
+            self.head_summary.setVisible(False)
 
         if self.expanded:
             self.setFixedWidth(330)
