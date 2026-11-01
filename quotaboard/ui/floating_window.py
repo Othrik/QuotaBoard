@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from html import escape
 import re
 import sys
 from datetime import datetime
@@ -535,11 +536,22 @@ class FloatingWindow(QWidget):
                 line.addWidget(logo)
             else:
                 line.addWidget(QLabel(result.label))
-            text = result.display if result.ok else "请求失败"
+            text = escape(result.display) if result.ok else "请求失败"
             if result.ok and result.metrics:
-                text = " · ".join(f"{m.get('label', '')} {float(m['percent']):.0f}%" for m in result.metrics if m.get('percent') is not None)
+                parts = []
+                for metric in result.metrics:
+                    try:
+                        percent = float(metric.get("percent"))
+                    except (TypeError, ValueError):
+                        continue
+                    label = escape(str(metric.get("label", "")))
+                    parts.append(f'{label} <span style="color:{_pct_color(percent)}; font-weight:700">{percent:.0f}%</span>')
+                text = " · ".join(parts)
+            elif result.ok and result.percent is not None:
+                text = re.sub(r"-?\d+(?:\.\d+)?%", lambda m: f'<span style="color:{_pct_color(result.percent)}; font-weight:700">{m.group(0)}</span>', text)
             value = QLabel(text)
-            value.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {TEXT_MAIN if result.ok else C_RED};")
+            value.setTextFormat(Qt.TextFormat.RichText)
+            value.setStyleSheet(f"font-size: 12px; color: {TEXT_MAIN if result.ok else C_RED};")
             line.addWidget(value)
             cell.setToolTip(f"{result.label}\n{result.sub_note}\n{result.error}")
             self.dock_layout.addWidget(cell)
