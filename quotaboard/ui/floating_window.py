@@ -360,7 +360,7 @@ class FloatingWindow(QWidget):
         hlay.addStretch(1)
         # 头部右侧：正在使用的 AI 图标（折叠态可一眼看到在用哪些平台）
         self.head_logos = QHBoxLayout()
-        self.head_logos.setSpacing(2)
+        self.head_logos.setSpacing(6)
         hlay.addLayout(self.head_logos)
         self.head_summary = QLabel("")
         self.head_summary.setStyleSheet(f"font-size: 12px; color: {TEXT_SUB};")
@@ -442,6 +442,11 @@ class FloatingWindow(QWidget):
         self.update_size()
 
     def update_size(self) -> None:
+        self.card_lay.setContentsMargins(*( (8, 4, 8, 8) if self.expanded else (0, 0, 0, 0) ))
+        self.card_lay.setSpacing(6 if self.expanded else 0)
+        self.header.layout().setContentsMargins(*( (10, 4, 10, 4) if self.expanded else (8, 8, 8, 8) ))
+        self.header.layout().setStretch(1, 1 if self.expanded else 0)
+        self.header.setFixedHeight(max(38, self.head_title.fontMetrics().height() + 12) if self.expanded else 32)
         self.head_title.setVisible(self.expanded)
         for button in self.header_buttons:
             button.setVisible(self.expanded)
@@ -473,7 +478,8 @@ class FloatingWindow(QWidget):
         else:
             # 折叠态同样走 adjustSize：body 行已隐藏，窗口自适应为头部高度，
             # 避免固定像素高度在高 DPI / 字体缩放下截断 header
-            self.setFixedWidth(max(76, 68 + 18 * self.head_logos.count()))
+            count = self.head_logos.count()
+            self.setFixedWidth(46 + 16 * count + 6 * max(0, count - 1))
             self.setMinimumHeight(0)
             self.setMaximumHeight(16777215)
             self.adjustSize()

@@ -109,7 +109,7 @@ try:
     w.toggle()
     app.processEvents()
     print("collapsed w/h:", w.width(), w.height())
-    assert w.width() == max(76, 68 + 18 * w.head_logos.count())
+    assert w.width() == 46 + 16 * w.head_logos.count() + 6 * max(0, w.head_logos.count() - 1)
     assert w.height() <= 90, f"折叠高度 {w.height()} 应 <=90"
     # 折叠态头部右侧显示正在使用的 AI 图标（codex=ChatGPT、doubao 共 2 个）
     print("head logos:", len(head_logos))
@@ -159,7 +159,7 @@ try:
     w.mouseReleaseEvent(ev_r2)
     app.processEvents()
     print("collapsed again w/h:", w.width(), w.height())
-    assert w.width() == max(76, 68 + 18 * w.head_logos.count()) and w.expanded is False
+    assert w.width() == 46 + 16 * w.head_logos.count() + 6 * max(0, w.head_logos.count() - 1) and w.expanded is False
 
     print("GUI FLOAT SMOKE OK")
 except Exception:
