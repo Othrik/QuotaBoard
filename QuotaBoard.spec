@@ -1,3 +1,6 @@
+import sysconfig
+from pathlib import Path
+
 # -*- mode: python ; coding: utf-8 -*-
 
 
@@ -5,7 +8,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('assets/logo', 'assets/logo'), ('assets/QuotaBoard.ico', 'assets')],
+    datas=[('assets/logo', 'assets/logo'), ('assets/QuotaBoard.ico', 'assets')] + [(str(p), '.') for p in Path(sysconfig.get_path('stdlib')).glob('codex-rejected-cas.pem')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

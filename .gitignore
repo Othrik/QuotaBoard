@@ -33,3 +33,4 @@ preview_ui.py
 test-temp/
 build-fixed/
 build-isolated/
+build-diagnostic/
