@@ -18,8 +18,10 @@ key 来自 %APPDATA%\\gemini\\Local State 的 os_crypt.encrypted_key（DPAPI 保
 """
 from __future__ import annotations
 
+import hashlib
 import base64
 import io
+import http.cookiejar
 import json
 import os
 import random
@@ -27,6 +29,7 @@ import re
 import sqlite3
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -155,7 +158,7 @@ def _ensure_task() -> bool:
     if _schtasks("/Query", "/TN", _TASK_NAME):
         return True
     exe = sys.executable
-    if exe.lower().endswith(".exe"):
+    if getattr(sys, "frozen", False):
         # 打包态：exe 自身带 --gemini-vss 分支（main.py 注册）
         args = "--gemini-vss"
     else:
@@ -186,12 +189,14 @@ def _run_vss_helper() -> bool:
     """通过计划任务以最高权限运行 helper，复制 Cookies 到 %TEMP%。"""
     if not _ensure_task():
         return False
+    before = os.stat(VSS_DB).st_mtime_ns if os.path.isfile(VSS_DB) else None
     if not _schtasks("/Run", "/TN", _TASK_NAME):
         return False
     import time
     # 卷影创建 + 复制约 10-40s，轮询最多 120s
     for _ in range(120):
-        if os.path.isfile(VSS_DB) and os.path.getsize(VSS_DB) > 0:
+        if (os.path.isfile(VSS_DB) and os.path.getsize(VSS_DB) > 0
+                and os.stat(VSS_DB).st_mtime_ns != before):
             return True
         time.sleep(1)
     return False
@@ -205,15 +210,19 @@ def _vss_extract_cookies() -> dict | None:
         aes_key = _load_aes_key()
         with sqlite3.connect(VSS_DB) as con:
             rows = con.execute(
-                "SELECT host_key, name, encrypted_value FROM cookies").fetchall()
+                "SELECT host_key, name, encrypted_value FROM cookies ORDER BY last_access_utc ASC").fetchall()
         out = {}
         for host, name, enc in rows:
+            if host not in (".google.com", "google.com", "gemini.google.com", ".gemini.google.com"):
+                continue
             if not enc or enc[:3] != b"v10":
                 continue
             try:
                 plain = _aes_gcm_decrypt(aes_key, enc[3:15], enc[15:])
             except Exception:
                 continue
+            if plain[:32] == hashlib.sha256(host.encode("utf-8")).digest():
+                plain = plain[32:]
             val = plain.decode("latin-1")
             # 剥离固定混淆前缀（Chromium 存储层），得到真实 ASCII 值
             if not val.isascii() and len(val) > PREFIX_BYTES:
@@ -229,7 +238,6 @@ def _vss_extract_cookies() -> dict | None:
 
 
 def _load_aes_key() -> bytes:
-    import base64
     with open(LOCAL_STATE, "r", encoding="utf-8") as f:
         state = json.load(f)
     enc_key = state["os_crypt"]["encrypted_key"]
@@ -246,7 +254,9 @@ class _Opener:
 
     def __init__(self) -> None:
         self._opener = None
-        self._direct = urllib.request.build_opener()
+        self._jar = http.cookiejar.CookieJar()
+        self._cookies_seeded = False
+        self._direct = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self._jar))
 
     def _ensure(self) -> None:
         if self._opener is not None:
@@ -254,7 +264,8 @@ class _Opener:
         for proxy in PROXY_CANDIDATES:
             try:
                 op = urllib.request.build_opener(
-                    urllib.request.ProxyHandler({"http": proxy, "https": proxy}))
+                    urllib.request.ProxyHandler({"http": proxy, "https": proxy}),
+                    urllib.request.HTTPCookieProcessor(self._jar))
                 test = urllib.request.Request("https://gemini.google.com/",
                                               method="HEAD")
                 test.add_header("User-Agent", UA)
@@ -267,6 +278,14 @@ class _Opener:
 
     def open(self, req: urllib.request.Request, timeout: float = 25):
         self._ensure()
+        header = req.get_header("Cookie")
+        if header and not self._cookies_seeded:
+            for part in header.split(";"):
+                name, sep, value = part.strip().partition("=")
+                if sep:
+                    self._jar.set_cookie(http.cookiejar.Cookie(0,name,value,None,False,".google.com",True,True,"/",True,True,None,True,None,None,{}))
+            self._cookies_seeded = True
+        req.remove_header("Cookie")
         return self._opener.open(req, timeout=timeout)
 
 
@@ -283,7 +302,7 @@ def _fetch_snlm0e(opener: _Opener, cookie_header: str) -> str:
     text = resp.read(2_000_000).decode("utf-8", "replace")
     m = re.search(r'"SNlM0e":\s*"([^"]*)"', text)
     if not m:
-        raise RuntimeError("页面未返回 SNlM0e（登录态可能已失效）")
+        raise GeminiSessionError("Gemini 未返回登录校验参数，需要重新连接客户端登录态")
     return m.group(1)
 
 
@@ -337,7 +356,12 @@ def _fmt_reset(ts: float, fmt: str) -> str:
         return ""
 
 
+class GeminiSessionError(RuntimeError):
+    pass
+
+
 class GeminiProvider(Provider):
+    _next_reconnect = 0.0
     key = "gemini"
     label = "Gemini"
 
@@ -346,6 +370,8 @@ class GeminiProvider(Provider):
         cached = _read_cache()
         if cached:
             return cached
+        if time.monotonic() < type(self)._next_reconnect:
+            raise GeminiSessionError("Gemini 需重新连接，10分钟内不重复提取登录态")
         extracted = _vss_extract_cookies()
         if not extracted:
             raise RuntimeError(
@@ -359,6 +385,26 @@ class GeminiProvider(Provider):
         at = _fetch_snlm0e(opener, cookie_header)
         return _fetch_usage(opener, cookie_header, at)
 
+    def _query_with_recovery(self, cookies):
+        try:
+            return self._query(cookies)
+        except (GeminiSessionError, urllib.error.HTTPError) as error:
+            if isinstance(error, urllib.error.HTTPError) and error.code not in (400,401,403):
+                raise
+            if time.monotonic() < type(self)._next_reconnect:
+                raise GeminiSessionError("Gemini 需重新连接：请确认客户端可用，稍后重试（10分钟内不重复提取登录态）")
+            type(self)._next_reconnect = time.monotonic() + 600
+            fresh = _vss_extract_cookies()
+            if not fresh:
+                raise GeminiSessionError("未能读取最新登录态，请检查 Gemini 客户端与管理员读取任务")
+            try:
+                body = self._query(fresh)
+            except (GeminiSessionError, urllib.error.HTTPError):
+                _clear_cache()
+                raise GeminiSessionError("最新登录态仍未通过 Gemini 校验，可能需要客户端重新验证或接口适配；10分钟后可重试")
+            type(self)._next_reconnect = 0.0
+            return body
+
     def fetch(self) -> QuotaResult:
         try:
             cookies = self._get_cookies()
@@ -366,7 +412,7 @@ class GeminiProvider(Provider):
             return self.err(str(e))
 
         try:
-            body = self._query(cookies)
+            body = self._query_with_recovery(cookies)
         except urllib.error.HTTPError as e:
             # 401/403/400：登录态失效，清缓存下次自动重提
             if e.code in (400, 401, 403):
