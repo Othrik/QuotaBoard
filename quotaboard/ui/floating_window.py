@@ -9,10 +9,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import QPoint, QRectF, Qt, Signal
+from PySide6.QtCore import QPoint, QRectF, Qt, Signal, QEvent, QTimer
 from PySide6.QtGui import (
     QAction, QColor, QFont, QGuiApplication, QIcon, QImage, QPainter, QPen,
-    QPixmap, QPalette,
+    QPixmap, QPalette, QCursor,
 )
 from PySide6.QtWidgets import (
     QApplication, QBoxLayout, QScrollArea, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel,
@@ -388,6 +388,39 @@ def _quota_details(result: QuotaResult) -> str:
             f'<tr><td colspan="2" style="padding:12px 0 0;color:#111111;font-size:10px;">刷新时间 · {escape(result.updated_at)}</td></tr></table></qt>')
 
 
+class _QuotaPopup(QWidget):
+    """Opaque, explicitly painted card; never delegates to native tooltips."""
+    def __init__(self, parent):
+        super().__init__(parent, Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 16, 18, 16)
+        self.text = QLabel()
+        self.text.setTextFormat(Qt.TextFormat.RichText)
+        self.text.setStyleSheet("background: transparent; color: #111111; font-size: 12px; border: none;")
+        layout.addWidget(self.text)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor("#FFFFFF"))
+        painter.setPen(QColor("#DDE3EB"))
+        painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
+
+    def present(self, text, position):
+        self.text.setText(text)
+        self.adjustSize()
+        screen = QGuiApplication.screenAt(position) or QGuiApplication.primaryScreen()
+        geo = screen.availableGeometry()
+        x = max(geo.left(), min(position.x(), geo.right() - self.width() + 1))
+        y = position.y() + 16
+        if y + self.height() > geo.bottom():
+            y = position.y() - self.height() - 12
+        self.move(x, max(geo.top(), y))
+        self.show()
+        self.raise_()
+
+
 class FloatingWindow(QWidget):
     refresh_requested = Signal()
     settings_requested = Signal()
@@ -419,6 +452,7 @@ class FloatingWindow(QWidget):
         QToolTip.setPalette(tooltip_palette)
         self.setWindowIcon(make_app_icon())
 
+        self._hover_popup = _QuotaPopup(self)
         self._build_ui()
         self.apply_shadow()
 
@@ -620,8 +654,10 @@ class FloatingWindow(QWidget):
             value.setStyleSheet(f"font-size: 12px; color: {TEXT_MAIN if result.ok else C_RED};")
             line.addWidget(value)
             cell.setToolTip(_quota_details(result))
-            for child in cell.findChildren(QWidget):
-                child.setToolTip(_quota_details(result))
+            for child in [cell] + cell.findChildren(QWidget):
+                child.setProperty("quotaHover", _quota_details(result))
+                child.setToolTip("")
+                child.installEventFilter(self)
             self.dock_layout.addWidget(cell)
             cell.show()
         if not self._dock_rows:
@@ -716,7 +752,23 @@ class FloatingWindow(QWidget):
             self._drag_pos = None
         super().mouseReleaseEvent(event)
 
+    def eventFilter(self, watched, event):
+        details = watched.property("quotaHover")
+        if details:
+            if event.type() in (QEvent.Type.Enter, QEvent.Type.ToolTip):
+                self._hover_popup.present(details, QCursor.pos())
+                if event.type() == QEvent.Type.ToolTip:
+                    return True
+            elif event.type() in (QEvent.Type.Leave, QEvent.Type.MouseButtonPress, QEvent.Type.Hide):
+                self._hover_popup.hide()
+        return super().eventFilter(watched, event)
+
+    def hideEvent(self, event):
+        self._hover_popup.hide()
+        super().hideEvent(event)
+
     def contextMenuEvent(self, event) -> None:
+        self._hover_popup.hide()
         menu = QMenu(self)
         act_refresh = QAction("立即刷新", self)
         act_refresh.triggered.connect(self.refresh_requested)
