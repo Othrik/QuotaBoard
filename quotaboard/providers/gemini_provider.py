@@ -27,7 +27,7 @@ import os
 import random
 import re
 import sqlite3
-import subprocess
+from ..background_process import run_hidden
 import sys
 import time
 import urllib.error
@@ -147,7 +147,7 @@ _PWSH = (r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
 def _schtasks(*args: str) -> bool:
     """调用 schtasks，成功返回 True（退出码 0 即成功，如 /Query 找到任务）。"""
     try:
-        r = subprocess.run([_SCHTASKS, *args], capture_output=True, timeout=60)
+        r = run_hidden([_SCHTASKS, *args], capture_output=True, timeout=60)
         return r.returncode == 0
     except Exception:
         return False
@@ -178,7 +178,7 @@ def _ensure_task() -> bool:
         % (exe, args, user, _TASK_NAME))
     b64 = base64.b64encode(ps.encode("utf-16-le")).decode("ascii")
     try:
-        r = subprocess.run([_PWSH, "-NoProfile", "-EncodedCommand", b64],
+        r = run_hidden([_PWSH, "-NoProfile", "-NonInteractive", "-EncodedCommand", b64],
                            capture_output=True, timeout=180)
         return r.returncode == 0
     except Exception:

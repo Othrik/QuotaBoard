@@ -269,7 +269,9 @@ class _Row(QFrame):
             if reset_week:
                 parts.append(f"周重置 {reset_week.group(1)}")
             sub = " · ".join(parts)
-        note = QLabel(sub)
+        # Visibility is set before the nested layout is attached. Without an
+        # explicit parent, setVisible(True) briefly opens a standalone window.
+        note = QLabel(sub, self)
         note.setStyleSheet(f"font-size: 11px; color: {TEXT_SUB};")
         note.setWordWrap(False)
         note.setMaximumWidth(170)

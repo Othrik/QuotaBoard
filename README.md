@@ -52,4 +52,6 @@ MSI 安装包需要 WiX Toolset 3.14。
 
 ## 版本
 
+1.1.35 修复刷新额度时短暂出现带标题栏小窗的问题，并隐藏 Gemini 后台查询与登录态恢复命令的终端窗口。
+
 最新版本与完整变更记录见 [Releases](https://github.com/Othrik/QuotaBoard/releases)。
