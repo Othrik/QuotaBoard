@@ -24,7 +24,7 @@ GUIDES={
  'doubao':'先打开豆包客户端并登录，程序会自动读取 5 小时与每周额度。自动读取失败时，可填写备用 sessionid。',
  'zhipu_member':'使用智谱清言客户端登录态查询积分。首次读取失败时，可关闭客户端后重试，或填写备用 Token。',
  'dmxapi':'在 dmxapi.cn 个人资料中查找用户 ID，并在更多选项中取得系统访问令牌。这里填写的是系统令牌，而非模型调用 API Key。',
- 'openai':'填写 OpenAI 平台 API Key，用于查询 API 账户额度。',
+ 'openai':'填写 Open AI API Platform 的 API Key，用于查询 API 账户额度。',
  'deepseek':'填写 DeepSeek 开放平台 API Key，可查看各币种总余额、充值余额、未过期赠送余额和是否足够调用。API 不提供今日/本月消费与 Token 账单。',
  'kimi':'填写 Moonshot / Kimi 开放平台 API Key，用于查询账户余额。',
  'zhipu':'填写智谱开放平台 API Key，自动查询账户可用余额，无需网页登录。这里显示预付费人民币余额，不是 GLM Coding Plan 的订阅额度。',
@@ -99,7 +99,7 @@ class SettingsDialog(QDialog):
         order_item=QListWidgetItem('AI 显示顺序');order_item.setData(Qt.UserRole,'__order__');self.navigation.addItem(order_item);self._order_page()
         font_item=QListWidgetItem('字体设置');font_item.setData(Qt.UserRole,'__fonts__');self.navigation.addItem(font_item);self._font_page()
         for key,meta in PLATFORM_META.items():
-            item=QListWidgetItem(meta['label']);item.setData(Qt.UserRole,key);item.setIcon(QIcon(_resource_path('assets/logo/'+PLATFORM_LOGO.get(key,'openai.png'))));self.navigation.addItem(item);self.nav_items[key]=item;self._platform_page(key,meta)
+            item=QListWidgetItem(meta['label']);item.setToolTip(meta['label']);item.setData(Qt.UserRole,key);item.setIcon(QIcon(_resource_path('assets/logo/'+PLATFORM_LOGO.get(key,'openai.png'))));self.navigation.addItem(item);self.nav_items[key]=item;self._platform_page(key,meta)
         self.navigation.currentRowChanged.connect(self._select_page);self.navigation.setCurrentRow(0)
         footer=QHBoxLayout();hint=muted('更改将在保存后生效 · 凭据仅加密保存在本机');hint.setWordWrap(False);footer.addWidget(hint);self.save_status=QLabel('');self.save_status.setStyleSheet('color:#18966C;font-size:11px;');footer.addWidget(self.save_status);footer.addStretch()
         cancel=QPushButton('关闭');cancel.clicked.connect(self.reject);save=QPushButton('保存并刷新');save.setObjectName('primary');save.setDefault(True);save.clicked.connect(self._save);footer.addWidget(cancel);footer.addWidget(save);outer.addLayout(footer)

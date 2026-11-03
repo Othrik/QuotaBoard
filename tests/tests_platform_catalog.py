@@ -1,0 +1,40 @@
+import os
+os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
+from pathlib import Path
+from PySide6.QtWidgets import QApplication
+from quotaboard.config import Config
+from quotaboard.model import PLATFORM_META,QuotaResult
+from quotaboard.providers import PROVIDERS
+from quotaboard.scheduler import Scheduler
+from quotaboard.ui.dashboard import Dashboard
+from quotaboard.ui.settings_dialog import SettingsDialog
+from quotaboard.taskbar import taskbar_label
+
+app=QApplication([])
+config=Config(Path('dist/platform-catalog-test/config.json'))
+config._data['platforms']={key:{'enabled':key in ('kimi','volc'),'kept':'test-value'} for key in ('kimi','volc',*PLATFORM_META)}
+config._data['platform_order']=['kimi','codex','volc','deepseek']
+config._data['cache']={key:dict(platform=key,label='old label',display='¥10') for key in ('openai','deepseek','zhipu')}
+config.save=lambda:None
+expected={'openai':'Open AI API Platform','deepseek':'DeepSeek开放平台','zhipu':'智谱开放平台'}
+for key,title in expected.items():
+    assert PLATFORM_META[key]['label']==title and PROVIDERS[key].label==title
+    assert config.get_cache(key)['label']==title
+    assert taskbar_label(QuotaResult(key,'old label','¥10'))==title
+for key in ('kimi','volc'):
+    assert key not in PLATFORM_META and key not in PROVIDERS and key not in config.platform_order
+    assert not config.is_enabled(key)
+    assert config._data['platforms'][key]['enabled'] and config._data['platforms'][key]['kept']=='test-value'
+config.platform_order=list(PLATFORM_META)
+assert 'kimi' in config._data['platform_order'] and 'volc' in config._data['platform_order']
+scheduler=Scheduler(config);received=[]
+scheduler.refreshed.connect(received.append);scheduler.refresh_all()
+assert received==[{}] and not scheduler.running, 'paused enabled providers must never start requests'
+dashboard=Dashboard(config,scheduler);settings=SettingsDialog(config)
+assert len(dashboard.cards)==8 and 'kimi' not in settings.nav_items and 'volc' not in settings.nav_items
+for key,title in expected.items():assert settings.nav_items[key].text()==title
+settings._save()
+assert config._data['platforms']['kimi']['kept']=='test-value'
+assert config._data['platforms']['volc']['kept']=='test-value'
+assert 'kimi' not in config.platform_order and 'volc' not in config.platform_order
+print('Canonical names, cached names, taskbar names, paused UI/background queries and retained configuration passed')

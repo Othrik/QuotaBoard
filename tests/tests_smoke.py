@@ -46,7 +46,6 @@ def test_provider_error_paths() -> None:
     cases = {
         "openai": {"api_key": "sk-invalid-quotaboard-test"},
         "zhipu": {"api_key": "invalid-quotaboard-test"},
-        "kimi": {"api_key": "sk-invalid-quotaboard-test"},
         "dmxapi": {"api_key": "invalid-quotaboard-test"},
     }
     for key, cfg in cases.items():
@@ -70,8 +69,8 @@ def test_volc_signature_structure() -> None:
     print("[OK] 火山签名头结构完整")
 
     # 完整链路：假凭据应返回"接口报错/请求失败"而非崩溃
-    from quotaboard.providers import PROVIDERS
-    result = PROVIDERS["volc"]({"ak": "AKTEST123", "sk": "SKTEST456",
+    from quotaboard.providers.volc_provider import VolcProvider
+    result = VolcProvider({"ak": "AKTEST123", "sk": "SKTEST456",
                                 "action": "GetUsageDetails"}).fetch()
     assert result.ok is False
     print(f"[OK] 火山方舟假凭据错误路径正常（{result.error[:70]}…）")
@@ -389,7 +388,6 @@ if __name__ == "__main__":
     test_dpapi_roundtrip()
     test_config_read_write()
     test_provider_error_paths()
-    test_volc_signature_structure()
     test_codex_provider()
     test_zhipu_member_provider()
     test_doubao_provider()

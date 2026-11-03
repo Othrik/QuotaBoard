@@ -26,7 +26,7 @@ def _money(value,currency):
 
 class DeepSeekProvider(Provider):
     key='deepseek'
-    label='DeepSeek'
+    label='DeepSeek开放平台'
 
     def fetch(self):
         api_key=str(self.cfg.get('api_key','')).strip()

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib,json,os,shutil,sys,time
 from pathlib import Path
 from PySide6.QtCore import QObject,QProcess,QTimer,Signal
-from .model import QuotaResult
+from .model import QuotaResult,PLATFORM_META
 from .taskbar_layout import make_layout,make_details,expanded_layout,detail_height
 from . import __version__
 from .balance_display import MONETARY_PLATFORMS
@@ -12,7 +12,8 @@ WIDGET_ID='com.othrik.quotaboard'
 
 def taskbar_label(result):
     plan = ' '.join(str(result.subscription_plan or '').split())
-    return result.label + (' · ' + plan[:24] if plan else '')
+    label=PLATFORM_META.get(result.platform,{}).get('label',result.label)
+    return label + (' · ' + plan[:24] if plan else '')
 
 def taskbar_quota_text(result,reset_mode='absolute'):
     from .ui.floating_window import _dock_quota_text

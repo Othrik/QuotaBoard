@@ -29,7 +29,7 @@ def money(value):
 
 class ZhipuProvider(Provider):
     key = 'zhipu'
-    label = '智谱 GLM'
+    label = '智谱开放平台'
 
     def fetch(self) -> QuotaResult:
         api_key = str(self.cfg.get('api_key', '')).strip()

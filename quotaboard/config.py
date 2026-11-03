@@ -152,7 +152,8 @@ class Config:
         self.platform_cfg(key)["enabled"] = bool(enabled)
 
     def is_enabled(self, key: str) -> bool:
-        return bool(self.platform_cfg(key).get("enabled", False))
+        from .model import PLATFORM_META
+        return key in PLATFORM_META and bool(self.platform_cfg(key).get("enabled", False))
 
     def is_taskbar_enabled(self, key: str) -> bool:
         """Independent from querying/overview visibility; preserve old defaults."""
@@ -181,11 +182,17 @@ class Config:
 
     @platform_order.setter
     def platform_order(self, keys: list[str]) -> None:
-        self._data["platform_order"] = list(keys)
+        from .model import PAUSED_PLATFORMS
+        paused=[key for key in self._data.get('platform_order',[]) if key in PAUSED_PLATFORMS]
+        self._data["platform_order"] = list(dict.fromkeys([*keys,*paused]))
 
     # ---- 缓存 ----
     def get_cache(self, key: str) -> Optional[dict[str, Any]]:
-        return self._data.setdefault("cache", {}).get(key)
+        from .model import PLATFORM_META
+        cached=self._data.setdefault("cache", {}).get(key)
+        if isinstance(cached,dict) and key in PLATFORM_META:
+            return {**cached,'label':PLATFORM_META[key]['label']}
+        return cached
 
     def set_cache(self, key: str, value: dict[str, Any]) -> None:
         self._data.setdefault("cache", {})[key] = value

@@ -49,8 +49,9 @@ class QuotaResult:
 
 
 # 平台注册元信息（展示顺序、设置项名称等）
+PAUSED_PLATFORMS=frozenset(('kimi','volc'))
 PLATFORM_META: dict[str, dict] = {
-    "openai": {"label": "OpenAI", "credential_fields": [("api_key", "API Key")]},
+    "openai": {"label": "Open AI API Platform", "credential_fields": [("api_key", "API Key")]},
     "codex": {
         "label": "ChatGPT",
         "credential_fields": [],
@@ -61,18 +62,13 @@ PLATFORM_META: dict[str, dict] = {
         "label": "豆包",
         "credential_fields": [("manual_sessionid", "手动 sessionid（可选）")],
     },
-    "zhipu": {"label": "智谱 GLM", "credential_fields": [("api_key", "API Key")]},
+    "zhipu": {"label": "智谱开放平台", "credential_fields": [("api_key", "API Key")]},
     "zhipu_member": {
         "label": "智谱清言",
         "credential_fields": [("manual_token", "手动 Token（可选）")],
     },
-    "kimi": {"label": "Kimi", "credential_fields": [("api_key", "API Key")]},
     "deepseek": {
-        "label": "DeepSeek",
+        "label": "DeepSeek开放平台",
         "credential_fields": [("api_key", "API Key")],
-    },
-    "volc": {
-        "label": "火山方舟",
-        "credential_fields": [("ak", "Access Key"), ("sk", "Secret Key")],
     },
 }

@@ -13,7 +13,7 @@ CREDIT_URL = "https://api.openai.com/dashboard/billing/credit_grants"
 
 class OpenAIProvider(Provider):
     key = "openai"
-    label = "OpenAI"
+    label = "Open AI API Platform"
 
     def fetch(self) -> QuotaResult:
         api_key = str(self.cfg.get("api_key", "")).strip()
