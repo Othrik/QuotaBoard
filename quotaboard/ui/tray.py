@@ -102,10 +102,4 @@ class TrayIcon(QSystemTrayIcon):
             self.act_autostart.blockSignals(False)
 
     def open_settings(self) -> None:
-        from .settings_dialog import SettingsDialog
-        from PySide6.QtWidgets import QDialog
-        dlg = SettingsDialog(self.config, self.window)
-        if dlg.exec() == QDialog.DialogCode.Accepted:
-            self.window.render()
-            self.scheduler.apply_interval()
-            self.scheduler.refresh_all()
+        self.window.settings_requested.emit()

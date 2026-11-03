@@ -8,6 +8,10 @@ from .taskbar_layout import make_layout,make_details,expanded_layout,detail_heig
 from . import __version__
 
 WIDGET_ID='com.othrik.quotaboard'
+
+def rotation_candidates(rows):
+    return [row for row in rows if row.ok]
+
 def write_json(path,payload):
     path.parent.mkdir(parents=True,exist_ok=True)
     text=json.dumps(payload,ensure_ascii=False)
@@ -17,13 +21,15 @@ def write_json(path,payload):
 class TaskbarController(QObject):
     failed=Signal(str)
     settings_requested=Signal()
+    details_requested=Signal(str)
     def __init__(self,config,window):
         super().__init__(window)
         self.config=config;self.window=window;self.rows=[];self.sequence=0
         self.root=Path(config.path).parent/'Taskbar';self.data=self.root/'Data'
         self.process=QProcess(self);self.process.finished.connect(self._finished)
-        self.next_start=0;self.failures=0;self.stopping=False;self.prepared=False
+        self.next_start=0;self.failures=0;self.stopping=False;self.prepared=False;self._last_content=None
         self.timer=QTimer(self);self.timer.setInterval(1000);self.timer.timeout.connect(self.tick);self.timer.start()
+        self.command_timer=QTimer(self);self.command_timer.setInterval(100);self.command_timer.timeout.connect(self.read_commands);self.command_timer.start()
     def set_rows(self,rows):
         self.rows=list(rows);self.tick()
     def prepare(self):
@@ -42,16 +48,19 @@ class TaskbarController(QObject):
             self.read_commands()
             if not self.prepared:self.prepare()
             from .ui.floating_window import _dock_quota_text,_resource_path,PLATFORM_LOGO
-            row=self.rows[(int(time.monotonic())//5)%len(self.rows)] if self.rows else QuotaResult(platform='codex',label='QuotaBoard',display='等待额度更新')
-            layout=make_layout(_dock_quota_text(row))
+            playable=rotation_candidates(self.rows)
+            row=playable[(int(time.monotonic())//5)%len(playable)] if playable else QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
+            layout=make_layout(_dock_quota_text(row),self.config._data.get('display_typography'))
             details=make_details(row)
-            entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=220,height=40,layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='hover',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
+            entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=layout['width'],height=layout['height'],layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='hover',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
             write_json(self.data/'Runtime/WidgetCatalog.json',dict(schemaVersion=2,widgets=[entry]))
-            write_json(self.data/'config.json',dict(configVersion=3,layout=dict(mode='row'),widgets=[dict(id=WIDGET_ID,widgetId=WIDGET_ID,instanceId=WIDGET_ID,enabled=True,order=0,position=self.config._data.get("taskbar_position",dict(anchorPercent=0,offsetPx=0)),settings={})],rotation=dict(intervalSeconds=5,widgetIds=[WIDGET_ID],instanceIds=[WIDGET_ID])))
-            content=dict(label=row.label,icon=_resource_path('assets/logo/'+PLATFORM_LOGO.get(row.platform,'openai.png')))
+            write_json(self.data/'config.json',dict(configVersion=3,layout=dict(mode='row'),widgets=[dict(id=WIDGET_ID,widgetId=WIDGET_ID,instanceId=WIDGET_ID,enabled=bool(playable),order=0,position=self.config._data.get("taskbar_position",dict(anchorPercent=0,offsetPx=0)),settings={})],rotation=dict(intervalSeconds=5,widgetIds=[WIDGET_ID],instanceIds=[WIDGET_ID])))
+            content=dict(platform=row.platform,label=row.label,icon=_resource_path('assets/logo/'+PLATFORM_LOGO.get(row.platform,'openai.png')))
             content.update({f'line{i}':details[i] if i<len(details) else '' for i in range(11)})
-            self.sequence+=1
-            write_json(self.data/'State'/f'{WIDGET_ID}.json',dict(schemaVersion=2,widgetId=WIDGET_ID,instanceId=WIDGET_ID,packageVersion=__version__,sequence=self.sequence,status='ok',data=content,settings={}))
+            if content != self._last_content:
+                self.sequence+=1
+                write_json(self.data/'State'/f'{WIDGET_ID}.json',dict(schemaVersion=2,widgetId=WIDGET_ID,instanceId=WIDGET_ID,packageVersion=__version__,sequence=self.sequence,status='ok',data=content,settings={}))
+                self._last_content=content
             write_json(self.data/'managed-control.json',dict(enabled=True,owner=os.getpid(),heartbeat=time.time()))
             if self.process.state()==QProcess.NotRunning and time.monotonic()>=self.next_start:
                 self.stopping=False
@@ -66,8 +75,14 @@ class TaskbarController(QObject):
         for path in sorted((self.data/'Commands').glob('*.json')):
             try:
                 command=json.loads(path.read_text(encoding='utf8'))
-                if command.get('widgetId')==WIDGET_ID and abs(time.time()-command.get('createdAtUnix',0))<15:
+                # A modal settings slot can enter a nested Qt event loop.
+                # Consume first so that timer re-entry cannot replay it.
+                path.unlink()
+                if self.config._data.get('taskbar_mode',False) and command.get('widgetId')==WIDGET_ID and abs(time.time()-command.get('createdAtUnix',0))<15:
                     if command.get('action')=='openSettings':self.settings_requested.emit()
+                    elif command.get('action')=='showQuotaDetails':
+                        platform=command.get('platform')
+                        if isinstance(platform,str) and any(r.platform==platform for r in self.rows):self.details_requested.emit(platform)
                     elif command.get('action')=='moveWidget':
                         self.config._data['taskbar_position']=dict(anchorPercent=max(0,min(100,int(command.get('positionPct',0)))),offsetPx=max(-4096,min(4096,int(command.get('offsetPx',0)))))
                         self.config.save()

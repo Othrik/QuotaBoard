@@ -57,12 +57,34 @@ def main() -> int:
     app.aboutToQuit.connect(window.native_taskbar.stop)
 
     def open_settings() -> None:
+        existing = getattr(window, "_settings_dialog", None)
+        if existing is not None:
+            existing.raise_()
+            existing.activateWindow()
+            return
         dlg = SettingsDialog(config, window)
-        if dlg.exec() == QDialog.DialogCode.Accepted:
+        window._settings_dialog = dlg
+        try:
+            accepted = dlg.exec() == QDialog.DialogCode.Accepted
+        finally:
+            window._settings_dialog = None
+        if accepted:
             window.render()
             scheduler.apply_interval()
             scheduler.refresh_all()
 
+    def open_quota_details(platform: str) -> None:
+        result = next((r for r in window.native_taskbar.rows if r.platform == platform), None)
+        if result is None:
+            return
+        from quotaboard.ui.taskbar_details import TaskbarDetailsPopup
+        popup = getattr(window, "_taskbar_details", None)
+        if popup is None:
+            popup = TaskbarDetailsPopup(window)
+            window._taskbar_details = popup
+        popup.present(result, typography_options=config._data.get("display_typography"))
+
+    window.native_taskbar.details_requested.connect(open_quota_details)
     window.native_taskbar.settings_requested.connect(open_settings)
 
     # 悬浮窗右键菜单信号

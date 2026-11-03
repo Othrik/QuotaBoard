@@ -1,6 +1,7 @@
 """Native taskbar layout built from the floating board's quota markup."""
 from html.parser import HTMLParser
 import re
+from .typography import typography,WEIGHTS
 
 class QuotaMarkup(HTMLParser):
     def __init__(self):
@@ -31,12 +32,18 @@ class QuotaMarkup(HTMLParser):
             else:
                 self.parts.append(dict(type='text',text=token,color=color,fontWeight=weight,fontSize=12,height=18,verticalAlignment='center'))
 
-def make_layout(markup):
-    parser=QuotaMarkup();parser.feed(markup)
-    # Each label and percent retains exactly the color/weight of the board.
-    title=dict(type='text',bind='data.label',fontSize=11,fontWeight='semibold',height=16,color='#FF17202B',horizontalAlignment='left')
-    values=dict(type='row',gap=0,height=18,horizontalAlignment='left',children=parser.parts)
-    return dict(type='card',width=220,height=40,backgroundColor='#00000000',padding=dict(left=6,right=8,top=3,bottom=3),radius=0,children=[dict(type='row',gap=8,height=34,verticalAlignment='center',horizontalAlignment='left',children=[dict(type='image',source=dict(bind='data.icon'),width=22,height=22,verticalAlignment='center',stretch='uniform',backgroundColor='#00000000'),dict(type='column',width=174,height=34,gap=0,verticalAlignment='center',horizontalAlignment='left',children=[title,values])])])
+def make_layout(markup,options=None):
+    parser=QuotaMarkup();parser.feed(markup);style=typography(options)
+    name_height=style['name_size']+4;quota_height=style['quota_size']+4
+    height=40;vertical_padding=max(1,(height-name_height-quota_height)//2);row_height=height-2*vertical_padding
+    width=max(220,round(220*max(style['name_size']/12,style['quota_size']/12)))
+    weight=WEIGHTS[style['weight']]
+    for part in parser.parts:
+        if part['type']=='text':part.update(fontFamily=style['family'],fontSize=style['quota_size'],fontWeight=weight,height=quota_height)
+        else:part['width']=max(4,round(part['width']*style['quota_size']/12))
+    title=dict(type='text',bind='data.label',fontFamily=style['family'],fontSize=style['name_size'],fontWeight=weight,height=name_height,color='#FF17202B',horizontalAlignment='left')
+    values=dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=parser.parts)
+    return dict(type='card',width=width,height=height,backgroundColor='#00000000',padding=dict(left=6,right=8,top=vertical_padding,bottom=vertical_padding),radius=0,children=[dict(type='row',gap=8,height=row_height,verticalAlignment='center',horizontalAlignment='left',children=[dict(type='image',source=dict(bind='data.icon'),width=22,height=22,verticalAlignment='center',stretch='uniform',backgroundColor='#00000000'),dict(type='column',width=width-44,height=row_height,gap=0,verticalAlignment='center',horizontalAlignment='left',children=[title,values])])])
 
 def make_details(result):
     lines=[]

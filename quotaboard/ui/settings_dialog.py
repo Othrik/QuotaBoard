@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QApplication,QCheckBox,QComboBox,QDialog,QFormLay
 from ..config import Config
 from ..model import PLATFORM_META
 from ..providers import PROVIDERS
+from ..typography import typography,FAMILIES
 from .floating_window import _resource_path,PLATFORM_LOGO
 
 FIELDS_LABEL={'system_token':'系统访问令牌','user_id':'用户 ID','api_key':'API Key','ak':'Access Key','sk':'Secret Key','manual_token':'手动 Token','manual_sessionid':'备用 sessionid'}
@@ -91,8 +92,21 @@ class SettingsDialog(QDialog):
         cancel=QPushButton('取消');cancel.clicked.connect(self.reject);save=QPushButton('保存并刷新');save.setObjectName('primary');save.setDefault(True);save.clicked.connect(self._save);footer.addWidget(cancel);footer.addWidget(save);outer.addLayout(footer)
     def _general_page(self):
         _,lay=self._scroll_page()
-        box,v=card('任务栏显示');self.taskbar_check=QCheckBox('在任务栏常驻显示 AI 额度');v.addWidget(self.taskbar_check);v.addWidget(muted('自动轮换已启用的平台，悬停查看详情，右键打开设置。'))
+        box,v=card('任务栏显示');self.taskbar_check=QCheckBox('在任务栏常驻显示 AI 额度');v.addWidget(self.taskbar_check);v.addWidget(muted('点击查看详情，右键打开设置。请求失败的平台暂停轮播，成功后自动恢复。'))
         row=QHBoxLayout();row.addWidget(QLabel('左右微调'));self.position_spin=QSpinBox();self.position_spin.setRange(-4096,4096);self.position_spin.setSuffix(' 像素');self.position_spin.setFixedWidth(140);row.addWidget(self.position_spin);reset=QPushButton('恢复左侧位置');reset.clicked.connect(self._reset_position);row.addWidget(reset);row.addStretch();v.addLayout(row);lay.addWidget(box)
+        box,v=card('名称与额度字体');form=QFormLayout();form.setSpacing(10)
+        self.font_family=QComboBox()
+        for label,family in zip(['微软雅黑 UI','微软雅黑','等线'],FAMILIES):self.font_family.addItem(label,family)
+        self.font_weight=QComboBox()
+        for label,weight in [('标准',400),('较粗',600),('粗体',700)]:self.font_weight.addItem(label,weight)
+        row=QHBoxLayout();row.addWidget(self.font_family,1);row.addWidget(self.font_weight);form.addRow('字体与粗细',row)
+        self.name_size=QSpinBox();self.name_size.setRange(10,14);self.name_size.setSuffix(' px');self.quota_size=QSpinBox();self.quota_size.setRange(10,16);self.quota_size.setSuffix(' px')
+        row=QHBoxLayout();row.addWidget(QLabel('名称'));row.addWidget(self.name_size);row.addSpacing(14);row.addWidget(QLabel('额度'));row.addWidget(self.quota_size);row.addStretch();form.addRow('字号',row);v.addLayout(form)
+        preview=QHBoxLayout();self.preview_name=QLabel('ChatGPT · 智谱 GLM');self.preview_quota=QLabel('5h 88% · 周 99%');preview.addWidget(self.preview_name);preview.addWidget(self.preview_quota);preview.addStretch();v.addLayout(preview)
+        v.addWidget(muted('任务栏与展示板共用字体设置，中英文和数字使用同一字体与粗细。'))
+        for control in [self.font_family,self.font_weight]:control.currentIndexChanged.connect(self._preview_typography)
+        for control in [self.name_size,self.quota_size]:control.valueChanged.connect(self._preview_typography)
+        lay.addWidget(box)
         box,v=card('自动刷新');row=QHBoxLayout();row.addWidget(QLabel('刷新间隔'));self.interval_spin=QSpinBox();self.interval_spin.setRange(1,1440);self.interval_spin.setSuffix(' 分钟');self.interval_spin.setFixedWidth(140);row.addWidget(self.interval_spin);row.addStretch();v.addLayout(row);lay.addWidget(box)
         box,v=card('AI 显示顺序');v.addWidget(muted('拖动调整顺序，或选中平台后使用上移、下移。展示板和任务栏共用此顺序。'))
         self.order_list=QListWidget();self.order_list.setObjectName('order');self.order_list.setDragDropMode(QAbstractItemView.InternalMove);self.order_list.setDefaultDropAction(Qt.MoveAction);self.order_list.setFixedHeight(156);self.order_list.setIconSize(QSize(18,18));v.addWidget(self.order_list)
@@ -123,12 +137,19 @@ class SettingsDialog(QDialog):
     def _move_order(self,delta):
         old=self.order_list.currentRow();new=old+delta
         if old>=0 and 0<=new<self.order_list.count():self.order_list.insertItem(new,self.order_list.takeItem(old));self.order_list.setCurrentRow(new)
+    def _typography_value(self):
+        return typography(dict(family=self.font_family.currentData(),weight=self.font_weight.currentData(),name_size=self.name_size.value(),quota_size=self.quota_size.value()))
+    def _preview_typography(self):
+        style=self._typography_value()
+        self.preview_name.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['name_size']}px;font-weight:{style['weight']};")
+        self.preview_quota.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['quota_size']}px;font-weight:{style['weight']};color:#219C77;")
     def _load(self):
         for key,meta in PLATFORM_META.items():
             self.enable_checks[key].setChecked(self.config.is_enabled(key))
             for field,_ in meta['credential_fields']:
                 saved=bool(self.config.get_credential(key,field));self.field_inputs[key][field].setPlaceholderText('已保存，留空保留' if saved else '未配置')
             if key=='volc':self.volc_actions[key].setCurrentIndex(1 if self.config.platform_cfg(key).get('action')=='ListModelInferenceLimits' else 0)
+        style=typography(self.config._data.get('display_typography'));self.font_family.setCurrentIndex(FAMILIES.index(style['family']));self.font_weight.setCurrentIndex(self.font_weight.findData(style['weight']));self.name_size.setValue(style['name_size']);self.quota_size.setValue(style['quota_size']);self._preview_typography()
         self.interval_spin.setValue(self.config.refresh_interval_minutes);self.taskbar_check.setChecked(bool(self.config._data.get('taskbar_mode',False)))
         position=self.config._data.get('taskbar_position',{});self._anchor_percent=position.get('anchorPercent',0);self.position_spin.setValue(position.get('offsetPx',0))
         for key in self.config.platform_order:
@@ -153,6 +174,7 @@ class SettingsDialog(QDialog):
                     text=self.field_inputs[key][field].text().strip()
                     if text:self.config.set_credential(key,field,text)
                 if key=='volc':self.config.platform_cfg(key)['action']='ListModelInferenceLimits' if self.volc_actions[key].currentIndex()==1 else 'GetUsageDetails'
+            self.config._data['display_typography']=self._typography_value()
             self.config._data['taskbar_mode']=self.taskbar_check.isChecked();self.config._data['taskbar_position']=dict(anchorPercent=self._anchor_percent,offsetPx=self.position_spin.value());self.config.refresh_interval_minutes=self.interval_spin.value()
             self.config.platform_order=[self.order_list.item(i).data(Qt.UserRole) for i in range(self.order_list.count())];self.config.save()
         except Exception as error:

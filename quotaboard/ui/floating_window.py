@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from ..config import Config
 from ..model import QuotaResult
+from ..typography import typography
 from ..scheduler import Scheduler
 
 C_GREEN = "#27AE80"
@@ -41,7 +42,7 @@ PLATFORM_LOGO = {
     "dmxapi": "dmxapi.png",
     "gemini": "gemini.png",
     "doubao": "doubao.png",
-    "zhipu": "zhipu.png",
+    "zhipu": "zhipu-glm.png",
     "zhipu_member": "zhipu.png",
     "kimi": "kimi.png",
     "deepseek": "deepseek.png",
@@ -186,11 +187,13 @@ class _Donut(QWidget):
     """环形图：外圈进度环 + 中心百分比 + 底部标签。
     圈体较小、条带两端圆头、底部标签与圈保持间距。"""
 
-    def __init__(self, percent: float, color: str, label: str = "") -> None:
+    def __init__(self, percent: float, color: str, label: str = "", font_family="Microsoft YaHei UI", font_weight=700) -> None:
         super().__init__()
         self._pct = max(0.0, min(100.0, float(percent)))
         self._color = color
         self._label = label
+        self._font_family = font_family
+        self._font_weight = font_weight
         # 高 55：标签区底部落在 widget 内，避免「5h / 周」下沿被裁
         self.setFixedSize(46, 55)
 
@@ -207,14 +210,15 @@ class _Donut(QWidget):
         p.setPen(pen)
         # 从顶部（90°）逆时针画剩余比例
         p.drawArc(ring, 90 * 16, int(-self._pct * 3.6 * 16))
-        f = QFont()
+        f = QFont(self._font_family)
         f.setPointSize(8)
-        f.setBold(True)
+        f.setWeight(QFont.Weight(self._font_weight))
         p.setFont(f)
         p.setPen(QColor(TEXT_MAIN))
         p.drawText(ring, Qt.AlignmentFlag.AlignCenter, f"{self._pct:.0f}%")
         if self._label:
-            f2 = QFont()
+            f2 = QFont(self._font_family)
+            f2.setWeight(QFont.Weight(self._font_weight))
             f2.setPointSize(8)
             p.setFont(f2)
             p.setPen(QColor(TEXT_SUB))
@@ -227,7 +231,7 @@ class _Donut(QWidget):
 class _Row(QFrame):
     """单平台额度行。"""
 
-    def __init__(self, result: QuotaResult, manual: bool = False) -> None:
+    def __init__(self, result: QuotaResult, manual: bool = False, typography_options=None) -> None:
         super().__init__()
         self.setObjectName("row")
         self.setStyleSheet(
@@ -249,8 +253,9 @@ class _Row(QFrame):
         left = QVBoxLayout()
         left.setSpacing(3)
         left.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        style = typography(typography_options)
         name = QLabel(result.label)
-        name.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_MAIN};")
+        name.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['name_size']+2}px;font-weight:{style['weight']};color:{TEXT_MAIN};")
         sub = result.updated_at.rsplit(" ", 1)[-1]
         if result.error:
             sub = f"失败：{result.error}"
@@ -286,11 +291,11 @@ class _Row(QFrame):
                 except (TypeError, ValueError):
                     m_pct = 0.0
                 donuts.addWidget(_Donut(m_pct, _pct_color(m_pct),
-                                        str(m.get("label", ""))))
+                                        str(m.get("label", "")), font_family=style["family"], font_weight=style["weight"]))
             right.addLayout(donuts)
         else:
             val = QLabel(result.display if result.ok else "—")
-            val.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TEXT_MAIN};")
+            val.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['quota_size']+2}px;font-weight:{style['weight']};color:{TEXT_MAIN};")
             val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             right.addWidget(val)
 
@@ -317,15 +322,15 @@ class _Row(QFrame):
         self.setToolTip(tip)
 
 
-def _dock_quota_text(result: QuotaResult) -> str:
+def _dock_quota_text(result: QuotaResult, font_weight: int = 700) -> str:
     def red(text):
-        return f'<span style="color:{C_RED}; font-weight:700">{escape(text)}</span>'
+        return f'<span style="color:{C_RED}; font-weight:{font_weight}">{escape(text)}</span>'
     if not result.ok:
         return red("请求失败")
     if not result.metrics:
         text = escape(result.display)
         if result.percent is not None:
-            text = re.sub(r"-?\d+(?:\.\d+)?%", lambda m: f'<span style="color:{_pct_color(result.percent)}; font-weight:700">{m.group(0)}</span>', text)
+            text = re.sub(r"-?\d+(?:\.\d+)?%", lambda m: f'<span style="color:{_pct_color(result.percent)}; font-weight:{font_weight}">{m.group(0)}</span>', text)
         return text
     metrics = []
     for metric in result.metrics:
@@ -350,14 +355,14 @@ def _dock_quota_text(result: QuotaResult) -> str:
             time = re.search(r"5h\s*重置\s*(\d{1,2}:\d{2})", notes, re.I)
             parts.append(red(f"5h {time[1]}重置" if time else "5h 等待重置"))
         else:
-            parts.append(f'{escape(label)} <span style="color:{_pct_color(pct)}; font-weight:700">{pct:.0f}%</span>')
+            parts.append(f'{escape(label)} <span style="color:{_pct_color(pct)}; font-weight:{font_weight}">{pct:.0f}%</span>')
     return " · ".join(parts)
 
 
-def _quota_details(result: QuotaResult) -> str:
+def _quota_details(result: QuotaResult, include_title: bool = True, font_weight: int = 700, table_width: int = 260) -> str:
     rows = []
     def row(label, value, color="#111111", bold=False):
-        weight = "font-weight:600;" if bold else ""
+        weight = f"font-weight:{font_weight};" if bold else ""
         rows.append(f'<tr><td style="color:#111111;padding:4px 16px 4px 0;">{escape(label)}</td><td align="right" style="padding:4px 0;color:{color};{weight}">{escape(str(value))}</td></tr>')
     if not result.ok:
         row("查询状态", "暂时无法获取", "#111111", True)
@@ -382,8 +387,8 @@ def _quota_details(result: QuotaResult) -> str:
             row("已用", f"{result.used:,.2f} {result.unit}")
     if result.sub_note and not result.metrics:
         row("说明", result.sub_note)
-    return (f'<qt><table width="260" cellspacing="0" cellpadding="0">'
-            f'<tr><td colspan="2" style="padding:0 0 10px;"><b>{escape(result.label)}</b></td></tr>'
+    return (f'<qt><table width="{table_width}" cellspacing="0" cellpadding="0">'
+            + (f'<tr><td colspan="2" style="padding:0 0 10px;"><b>{escape(result.label)}</b></td></tr>' if include_title else '')
             + ''.join(rows) +
             f'<tr><td colspan="2" style="padding:12px 0 0;color:#111111;font-size:10px;">刷新时间 · {escape(result.updated_at)}</td></tr></table></qt>')
 
@@ -458,6 +463,7 @@ class FloatingWindow(QWidget):
         self.apply_shadow()
 
         self.scheduler.refreshed.connect(self.on_results)
+        self.scheduler.result_ready.connect(self.on_partial_result)
         self._anchor_timer = QTimer(self)
         self._anchor_timer.setInterval(1000)
         self._anchor_timer.timeout.connect(self._keep_taskbar_position)
@@ -533,6 +539,10 @@ class FloatingWindow(QWidget):
         self.card.setGraphicsEffect(sh)
 
     # ---------- 数据 ----------
+    def on_partial_result(self, key, result):
+        self._results[key] = result
+        self.render()
+
     def on_results(self, results: dict[str, QuotaResult]) -> None:
         self._results = results
         self._last_refresh = datetime.now().strftime("%H:%M")
@@ -576,7 +586,7 @@ class FloatingWindow(QWidget):
             self.body.addWidget(tip)
         else:
             for r in rows:
-                self.body.addWidget(_Row(r, manual=(r.platform == "manual")))
+                self.body.addWidget(_Row(r, manual=(r.platform == "manual"), typography_options=self.config._data.get("display_typography")))
 
         # 头部不再显示「N 个偏低/告警/正常」摘要（用户要求移除）
         self.head_summary.setText("")
@@ -664,10 +674,11 @@ class FloatingWindow(QWidget):
                 line.addWidget(logo)
             else:
                 line.addWidget(QLabel(result.label))
-            text = _dock_quota_text(result)
+            style = typography(self.config._data.get("display_typography"))
+            text = _dock_quota_text(result, font_weight=style["weight"])
             value = QLabel(text)
             value.setTextFormat(Qt.TextFormat.RichText)
-            value.setStyleSheet(f"font-size: 12px; color: {TEXT_MAIN if result.ok else C_RED};")
+            value.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['quota_size']}px;font-weight:{style['weight']};color:{TEXT_MAIN if result.ok else C_RED};")
             line.addWidget(value)
             cell.setToolTip(_quota_details(result))
             for child in [cell] + cell.findChildren(QWidget):

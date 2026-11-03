@@ -35,6 +35,7 @@ class _RefreshTask(QRunnable):
 class Scheduler(QObject):
     """管理刷新节奏；每轮完成后统一发 refreshed 信号。"""
 
+    result_ready = Signal(str, object)
     refreshed = Signal(dict)  # {platform_key: QuotaResult}
 
     def __init__(self, config: Config, parent: QObject | None = None) -> None:
@@ -84,6 +85,7 @@ class Scheduler(QObject):
             self.config.set_cache(key, dataclasses.asdict(result))
         except TypeError:
             pass
+        self.result_ready.emit(key, result)
         if len(self.pending) >= self.expected:
             self.running = False
             try:

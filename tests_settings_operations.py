@@ -35,9 +35,11 @@ try:
  while d._workers and time.monotonic()<deadline:app.processEvents();time.sleep(.005)
  assert not d._workers and '连接成功' in d.test_status['deepseek'].text()
  assert c.saved==0,'Connection test unexpectedly saved settings'
+ d.font_weight.setCurrentIndex(d.font_weight.findData(700));d.name_size.setValue(13);d.quota_size.setValue(14)
  d._save();assert c.saved==1 and d.result()==QDialog.Accepted
  assert c.get_credential('deepseek','api_key')=='saved-test-key'
  assert c._data['taskbar_position']==dict(anchorPercent=0,offsetPx=0)
  assert c.platform_order[1]==first
+ assert c._data['display_typography']['weight']==700 and c._data['display_typography']['quota_size']==14
 finally:release.set();PROVIDERS['deepseek']=original
 print('Settings navigation, sorting, reset position, secret preservation, async responsiveness and save passed')
