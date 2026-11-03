@@ -35,7 +35,7 @@ class QuotaMarkup(HTMLParser):
 def make_layout(markup,options=None,title_text=None):
     parser=QuotaMarkup();parser.feed(markup);style=typography(options)
     name_height=style['name_size']+4;quota_height=style['quota_size']+4
-    height=40;vertical_padding=max(1,(height-name_height-quota_height)//2);row_height=height-2*vertical_padding
+    height=max(40,name_height+quota_height+2);vertical_padding=max(1,(height-name_height-quota_height)//2);row_height=height-2*vertical_padding
     width=max(220,round(220*max(style['name_size']/12,style['quota_size']/12)))
     name_weight=WEIGHTS[style['weight']]
     quota_weight=WEIGHTS[style['quota_weight']]

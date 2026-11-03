@@ -35,6 +35,10 @@ assert any(p.get('text')=='智谱' and p['fontFamily']=='SimHei' for p in title)
 assert any(p.get('text')=='GLM' and p['fontFamily']=='Consolas' for p in title)
 assert any(p.get('text')=='周' and p['fontFamily']=='SimSun' for p in values)
 assert any(p.get('text')=='99%' and p['fontFamily']=='Arial' for p in values)
+large_native=make_layout('5h 88% · 周 99%',dict(name_size=16,quota_size=18),'豆包 · 标准套餐')
+column=large_native['children'][0]['children'][1]
+assert sum(child['height'] for child in column['children'])<=column['height']
+assert large_native['height']<=48
 
 config=Config(Path('dist/script-font-test/config.json'))
 config._data['display_typography']=style
