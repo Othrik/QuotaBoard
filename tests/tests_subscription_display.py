@@ -24,6 +24,7 @@ response={'result':{'rateLimits':{'planType':'plus','primary':{
     'usedPercent':20,'resetsAt':1794000000,'windowDurationMins':300}}}}
 result=CodexProvider({})._parse(response)
 assert result.subscription_plan=='Plus' and taskbar_label(result)=='ChatGPT · Plus'
+assert result.metrics[0]['resets_at']==1794000000
 assert not result.subscription_expires_at, 'rate-limit resets are not membership expiry'
 for key,plan,title in [('gemini','Pro','Gemini'),('doubao','标准套餐','豆包')]:
     row=QuotaResult(key,title,'80%',subscription_plan=plan)

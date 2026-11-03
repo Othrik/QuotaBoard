@@ -355,6 +355,7 @@ class DoubaoProvider(Provider):
             metrics.append({
                 "label": w["label"],
                 "percent": 100 - w["pct"],
+                "resets_at": w['end']/1000 if w.get('end') else None,
                 "note": f"{w['label']}重置 {reset}" if reset
                         else f"{w['label']} {w['used']} / {w['total']}",
             })

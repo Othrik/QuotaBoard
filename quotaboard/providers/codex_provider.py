@@ -280,6 +280,7 @@ class CodexProvider(Provider):
                     "label": name,
                     "percent": 100 - w["used"],
                     "note": f"{name}重置 {local.strftime(fmt)}",
+                    "resets_at": w['resets'],
                 })
 
         notes = [m["note"] for m in metrics]

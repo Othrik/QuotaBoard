@@ -451,7 +451,7 @@ class GeminiProvider(Provider):
                     if reset:
                         note = f"{label}重置 {reset}"
                         parts.append(note)
-                metrics.append({"label": label, "percent": pct, "note": note})
+                metrics.append({"label": label, "percent": pct, "note": note,"resets_at":reset_ts})
             if not metrics:
                 return self.err("响应未包含有效用量窗口（接口可能已调整）")
             # 展示顺序：5h 在前、周在后（与豆包/ChatGPT 一致）

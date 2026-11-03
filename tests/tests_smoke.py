@@ -272,6 +272,7 @@ def test_doubao_provider() -> None:
     assert result.metrics and len(result.metrics) == 2, result.metrics
     assert result.metrics[0]["label"] == "5h" and result.metrics[0]["percent"] == 47
     assert result.metrics[1]["label"] == "周" and result.metrics[1]["percent"] == 16
+    assert result.metrics[0]['resets_at']==1793466602516/1000
     # 各窗口显示重置时间：5h 时分，周含日期
     assert re.search(r"5h重置 \d{2}:\d{2}", result.sub_note), result.sub_note
     assert re.search(r"周重置 \d{2}-\d{2} \d{2}:\d{2}", result.sub_note), result.sub_note

@@ -337,7 +337,7 @@ class _Row(QFrame):
         self.setToolTip(tip)
 
 
-def _dock_quota_text(result: QuotaResult, font_weight: int = 700) -> str:
+def _dock_quota_text(result: QuotaResult, font_weight: int = 700, reset_mode='absolute', now=None) -> str:
     def red(text):
         return f'<span style="color:{C_RED}; font-weight:{font_weight}">{escape(text)}</span>'
     if not result.ok:
@@ -358,6 +358,10 @@ def _dock_quota_text(result: QuotaResult, font_weight: int = 700) -> str:
         metrics.append((metric, pct))
     for metric, pct in metrics:
         if metric.get("label") == "周" and pct <= 0:
+            if reset_mode=='countdown':
+                from ..reset_time import countdown_text
+                text=countdown_text(result,metric,now)
+                if text:return red('周 '+text)
             notes = str(metric.get("note", "")) + " " + result.sub_note
             date = re.search(r"周\s*重置\s*(?:\d{4}-)?(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}:\d{2}))?", notes)
             if date:
@@ -368,6 +372,11 @@ def _dock_quota_text(result: QuotaResult, font_weight: int = 700) -> str:
     for metric, pct in metrics:
         label = str(metric.get("label", ""))
         if label == "5h" and pct <= 0:
+            if reset_mode=='countdown':
+                from ..reset_time import countdown_text
+                text=countdown_text(result,metric,now)
+                if text:
+                    parts.append(red('5h '+text));continue
             notes = str(metric.get("note", "")) + " " + result.sub_note
             time = re.search(r"5h\s*重置\s*(\d{1,2}:\d{2})", notes, re.I)
             parts.append(red(f"5h {time[1]}重置" if time else "5h 等待重置"))
@@ -463,6 +472,7 @@ class FloatingWindow(QWidget):
         self._dock_edge = None
         self._native_mode_previous = bool(config._data.get("taskbar_mode", False))
         self._dock_rows = []
+        self._dock_value_labels=[]
         self.expanded = True
         self._drag_pos: Optional[QPoint] = None
         self._moved = False
@@ -755,6 +765,7 @@ class FloatingWindow(QWidget):
             self.adjustSize()
 
     def _update_dock(self) -> None:
+        self._dock_value_labels=[]
         while self.dock_layout.count():
             item = self.dock_layout.takeAt(0)
             if item.widget():
@@ -773,11 +784,12 @@ class FloatingWindow(QWidget):
             else:
                 line.addWidget(QLabel(result.label))
             style = floating_typography(self.config._data)
-            text = restyle_markup(_dock_quota_text(result,font_weight=style['quota_weight']),style,'quota')
+            text = restyle_markup(_dock_quota_text(result,font_weight=style['quota_weight'],reset_mode=self.config.get('reset_display','absolute')),style,'quota')
             value = QLabel(text)
             value.setTextFormat(Qt.TextFormat.RichText)
             value.setStyleSheet(f"color:{TEXT_MAIN if result.ok else C_RED};")
             line.addWidget(value)
+            self._dock_value_labels.append((result,value))
             cell.setToolTip(_quota_details(result))
             for child in [cell] + cell.findChildren(QWidget):
                 child.setProperty("quotaHover", restyle_markup(_quota_details(result),style,'note',font_only=True))
@@ -793,6 +805,11 @@ class FloatingWindow(QWidget):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.card_lay.setContentsMargins(0, 0, 0, 0)
         self.card_lay.setSpacing(0)
+        self._fit_dock()
+
+    def _fit_dock(self):
+        style=floating_typography(self.config._data)
+        horizontal=self._dock_edge in ('top','bottom','taskbar')
         self.dock_layout.activate()
         hint = self.dock_content.sizeHint()
         geo = self.screen().availableGeometry()
@@ -818,6 +835,12 @@ class FloatingWindow(QWidget):
         self.move(x, y)
 
     def _keep_taskbar_position(self):
+        if self._dock_edge and self.isVisible() and self.config.get('reset_display')=='countdown':
+            style=floating_typography(self.config._data);changed=False
+            for result,value in self._dock_value_labels:
+                text=restyle_markup(_dock_quota_text(result,font_weight=style['quota_weight'],reset_mode='countdown'),style,'quota')
+                if value.text()!=text:value.setText(text);changed=True
+            if changed:self._fit_dock()
         if self._dock_edge == "taskbar" and self.isVisible():
             self._anchor_dock()
 

@@ -108,6 +108,10 @@ class SettingsDialog(QDialog):
         box,v=card('任务栏显示');self.taskbar_check=QCheckBox('在任务栏常驻显示 AI 额度');v.addWidget(self.taskbar_check);v.addWidget(muted('点击任务栏额度打开总览；总览卡片可分别勾选是否参与任务栏轮播。请求失败的平台暂停轮播，成功后自动恢复。'))
         row=QHBoxLayout();row.addWidget(QLabel('左右微调'));self.position_spin=QSpinBox();self.position_spin.setRange(-4096,4096);self.position_spin.setSuffix(' 像素');self.position_spin.setFixedWidth(140);row.addWidget(self.position_spin);reset=QPushButton('恢复左侧位置');reset.clicked.connect(self._reset_position);row.addWidget(reset);row.addStretch();v.addLayout(row);lay.addWidget(box)
         box,v=card('自动刷新');row=QHBoxLayout();row.addWidget(QLabel('刷新间隔'));self.interval_spin=QSpinBox();self.interval_spin.setRange(1,1440);self.interval_spin.setSuffix(' 分钟');self.interval_spin.setFixedWidth(140);row.addWidget(self.interval_spin);row.addStretch();v.addLayout(row);lay.addWidget(box)
+        box,v=card('重置提示');self.reset_display=QComboBox()
+        self.reset_display.addItem('具体时间（11月5日 03:04 周重置）','absolute')
+        self.reset_display.addItem('倒计时（周 1天2小时后重置）','countdown')
+        v.addWidget(self.reset_display);v.addWidget(muted('用于任务栏和桌面吸附条的额度耗尽提示。倒计时自动更新，不会增加额度查询频率。'));lay.addWidget(box)
         lay.addStretch()
     def _font_page(self):
         _,lay=self._scroll_page()
@@ -252,6 +256,7 @@ class SettingsDialog(QDialog):
         self._set_profile('floating',floating_typography(self.config._data))
         self._preview_typography()
         self.interval_spin.setValue(self.config.refresh_interval_minutes);self.taskbar_check.setChecked(bool(self.config._data.get('taskbar_mode',False)))
+        self.reset_display.setCurrentIndex(max(0,self.reset_display.findData(self.config.get('reset_display','absolute'))))
         position=self.config._data.get('taskbar_position',{});self._anchor_percent=position.get('anchorPercent',0);self.position_spin.setValue(position.get('offsetPx',0))
         self._populate_order(self.config.platform_order)
     def _test(self,key):
@@ -275,6 +280,7 @@ class SettingsDialog(QDialog):
                 if key=='volc':self.config.platform_cfg(key)['action']='ListModelInferenceLimits' if self.volc_actions[key].currentIndex()==1 else 'GetUsageDetails'
             self.config._data['display_typography']=self._typography_value()
             self.config._data['floating_typography']=self._profile_value('floating')
+            self.config._data['reset_display']=self.reset_display.currentData()
             self.config._data['taskbar_mode']=self.taskbar_check.isChecked();self.config._data['taskbar_position']=dict(anchorPercent=self._anchor_percent,offsetPx=self.position_spin.value());self.config.refresh_interval_minutes=self.interval_spin.value()
             self.config.platform_order=[self.order_list.item(i).data(Qt.UserRole) for i in range(self.order_list.count())];self.config.save()
         except Exception as error:
