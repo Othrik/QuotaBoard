@@ -47,3 +47,10 @@ s=s[:pos]+method+s[pos:];p.write_text(s,encoding='utf8')
 # Rebuild the private child under a QuotaBoard process name.
 p=root/'src/loader/TaskbarWidgets.csproj';s=p.read_text(encoding='utf8').replace('<AssemblyName>TaskbarWidgets</AssemblyName>','<AssemblyName>QuotaBoard.TaskbarHost</AssemblyName>');p.write_text(s,encoding='utf8')
 print('Applied QuotaBoard managed lifecycle')
+
+# Native empty fields are intentionally blank, never repeated placeholder dashes.
+p=root/'src/native/taskbar-hook/taskbar_widgets_hook.cpp'
+s=p.read_text(encoding='utf8')
+assert s.count('return text.empty() ? L"--" : text;')==1
+s=s.replace('return text.empty() ? L"--" : text;', 'return text;')
+p.write_text(s,encoding='utf8')
