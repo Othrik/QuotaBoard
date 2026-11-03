@@ -24,11 +24,11 @@ assert countdown_text(row,row.metrics[0],now+3601)=='1小时后重置'
 assert countdown_text(row,row.metrics[0],now+7190)=='1分钟后重置'
 assert countdown_text(row,row.metrics[0],now+7200)=='等待刷新'
 text=_dock_quota_text(row,reset_mode='countdown',now=now)
-assert '5h 2小时后重置' in text and '80%' in text
+assert '5h 2小时后重置' in plain(text) and '80%' in text
 assert '14:00' in _dock_quota_text(row), 'default mode must preserve absolute times'
 row.metrics[1]=dict(label='周',percent=0,resets_at=now+86400+3*3600+5*60,note='周重置 11-05 15:05')
-assert '周 1天3小时5分后重置' in _dock_quota_text(row,reset_mode='countdown',now=now)
-assert '11月5日 15:05 周重置' in _dock_quota_text(row)
+assert '周 1天3小时5分后重置' in plain(_dock_quota_text(row,reset_mode='countdown',now=now))
+assert '11月5日 15:05 周重置' in plain(_dock_quota_text(row))
 legacy=QuotaResult('codex','ChatGPT','0%',updated_at='2026-12-31 23:30:00')
 metric=dict(label='5h',note='5h重置 00:30')
 assert reset_timestamp(legacy,metric)==datetime(2027,1,1,0,30).timestamp()

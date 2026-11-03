@@ -224,7 +224,7 @@ class _Donut(QWidget):
             f2.setWeight(QFont.Weight(self._font_weight))
             f2.setPixelSize(self._font_size)
             p.setFont(f2)
-            p.setPen(QColor(TEXT_SUB))
+            p.setPen(QColor('#111111'))
             # 标签与圈底保持间距，避免贴太近
             p.drawText(QRectF(0, self._diameter+9, self.width(), self._font_size+3), Qt.AlignmentFlag.AlignCenter,
                        self._label)
@@ -340,6 +340,8 @@ class _Row(QFrame):
 def _dock_quota_text(result: QuotaResult, font_weight: int = 700, reset_mode='absolute', now=None) -> str:
     def red(text):
         return f'<span style="color:{C_RED}; font-weight:{font_weight}">{escape(text)}</span>'
+    def period(text):
+        return f'<span style="color:#111111; font-weight:{font_weight}">{escape(text)}</span>'
     if not result.ok:
         return red("请求失败")
     if result.account_available is False:
@@ -361,13 +363,13 @@ def _dock_quota_text(result: QuotaResult, font_weight: int = 700, reset_mode='ab
             if reset_mode=='countdown':
                 from ..reset_time import countdown_text
                 text=countdown_text(result,metric,now)
-                if text:return red('周 '+text)
+                if text:return period('周')+' '+red(text)
             notes = str(metric.get("note", "")) + " " + result.sub_note
             date = re.search(r"周\s*重置\s*(?:\d{4}-)?(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}:\d{2}))?", notes)
             if date:
                 clock = f" {date[3]} " if date[3] else " "
-                return red(f"{int(date[1])}月{int(date[2])}日{clock}周重置")
-            return red("周额度用完，等待重置")
+                return red(f"{int(date[1])}月{int(date[2])}日{clock}")+period('周')+red('重置')
+            return period('周')+red('额度用完，等待重置')
     parts = []
     for metric, pct in metrics:
         label = str(metric.get("label", ""))
@@ -376,12 +378,12 @@ def _dock_quota_text(result: QuotaResult, font_weight: int = 700, reset_mode='ab
                 from ..reset_time import countdown_text
                 text=countdown_text(result,metric,now)
                 if text:
-                    parts.append(red('5h '+text));continue
+                    parts.append(period('5h')+' '+red(text));continue
             notes = str(metric.get("note", "")) + " " + result.sub_note
             time = re.search(r"5h\s*重置\s*(\d{1,2}:\d{2})", notes, re.I)
-            parts.append(red(f"5h {time[1]}重置" if time else "5h 等待重置"))
+            parts.append(period('5h')+' '+red(f"{time[1]}重置" if time else "等待重置"))
         else:
-            parts.append(f'{escape(label)} <span style="color:{_pct_color(pct)}; font-weight:{font_weight}">{pct:.0f}%</span>')
+            parts.append(f'{period(label)} <span style="color:{_pct_color(pct)}; font-weight:{font_weight}">{pct:.0f}%</span>')
     return " · ".join(parts)
 
 
