@@ -341,7 +341,7 @@ def test_deepseek_provider() -> None:
     assert result.ok is False and "未配置" in result.error, result.error
     print("[OK] DeepSeek 未配置 API Key 错误路径")
 
-    # 2) 余额解析：直接显示余额数字（¥100.00），percent=None 不画条带
+    # 2) 余额解析：直接显示余额数字（¥100.0000），percent=None 不画条带
     payload = {
         "is_available": True,
         "balance_infos": [
@@ -354,7 +354,7 @@ def test_deepseek_provider() -> None:
             return_value=payload):
         result = PROVIDERS["deepseek"]({"api_key": "sk-test"}).fetch()
     assert result.ok, result.error
-    assert result.display == "¥100.00", result.display
+    assert result.display == "¥100.0000", result.display
     assert result.percent is None, result.percent
     assert result.sub_note == "", result.sub_note
     print(f"[OK] DeepSeek 余额解析正确（{result.display}，percent={result.percent}）")
@@ -370,7 +370,7 @@ def test_deepseek_provider() -> None:
             "quotaboard.providers.deepseek_provider.http_get_json",
             return_value=payload_multi):
         result = PROVIDERS["deepseek"]({"api_key": "sk-test"}).fetch()
-    assert result.ok and result.display == "¥12.34 · -$1.58", result.display
+    assert result.ok and result.display == "¥12.3400 · -$1.5800", result.display
     print(f"[OK] DeepSeek 多币种余额连接正确（{result.display}）")
 
     # 4) 401 → API Key 无效

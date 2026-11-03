@@ -20,8 +20,7 @@ def _amount(value):
 
 def _money(value,currency):
     symbol=_CURRENCY_SYMBOL.get(currency,currency+' ')
-    whole,_,fraction=format(abs(value),',.4f').partition('.')
-    return ('-' if value<0 else '')+symbol+whole+'.'+fraction.rstrip('0').ljust(2,'0')
+    return ('-' if value<0 else '')+symbol+format(abs(value),',.4f')
 
 
 class DeepSeekProvider(Provider):

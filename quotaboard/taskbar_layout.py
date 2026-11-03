@@ -72,8 +72,10 @@ def make_details(result):
             if note:lines.append('重置时间：'+note)
     else:
         lines=['当前余额：'+result.display]
-        if result.total is not None:lines.append(f'总量：{result.total:,.2f} {result.unit}')
-        if result.used is not None:lines.append(f'已用：{result.used:,.2f} {result.unit}')
+        from .balance_display import CURRENCIES
+        precision=4 if result.unit in CURRENCIES else 2
+        if result.total is not None:lines.append(f'总量：{result.total:,.{precision}f} {result.unit}')
+        if result.used is not None:lines.append(f'已用：{result.used:,.{precision}f} {result.unit}')
         if result.sub_note:lines.append('说明：'+result.sub_note)
     if result.ok:
         lines.extend(str(item.get('label',''))+'：'+str(item.get('value','')) for item in (result.details or []))

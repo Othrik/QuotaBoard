@@ -37,7 +37,7 @@ class OpenAIProvider(Provider):
 
         return QuotaResult(
             platform=self.key, label=self.label,
-            display=f"${available:,.2f}",
+            display=f"${available:,.4f}",
             available=available, used=used, total=total, unit="USD",
             percent=percent, ok=True,
         )

@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject,QProcess,QTimer,Signal
 from .model import QuotaResult
 from .taskbar_layout import make_layout,make_details,expanded_layout,detail_height
 from . import __version__
+from .balance_display import MONETARY_PLATFORMS
 
 WIDGET_ID='com.othrik.quotaboard'
 
@@ -16,7 +17,7 @@ def taskbar_label(result):
 def taskbar_quota_text(result,reset_mode='absolute'):
     from .ui.floating_window import _dock_quota_text
     text=_dock_quota_text(result,reset_mode=reset_mode)
-    if result.ok and result.platform in ('openai','dmxapi','zhipu','kimi','deepseek') and not result.display.startswith('余额'):
+    if result.ok and result.platform in MONETARY_PLATFORMS and not result.display.startswith('余额'):
         return '余额 '+text
     return text
 

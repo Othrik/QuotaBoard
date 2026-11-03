@@ -409,10 +409,12 @@ def _quota_details(result: QuotaResult, include_title: bool = True, font_weight:
                 row("重置时间", reset)
     else:
         row("当前余额", result.display, "#111111", True)
+        from ..balance_display import CURRENCIES
+        precision=4 if result.unit in CURRENCIES else 2
         if result.total is not None:
-            row("总量", f"{result.total:,.2f} {result.unit}")
+            row("总量", f"{result.total:,.{precision}f} {result.unit}")
         if result.used is not None:
-            row("已用", f"{result.used:,.2f} {result.unit}")
+            row("已用", f"{result.used:,.{precision}f} {result.unit}")
     if result.sub_note and not result.metrics:
         row("说明", result.sub_note)
     if result.ok:

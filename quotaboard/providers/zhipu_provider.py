@@ -24,8 +24,7 @@ def amount(value):
 
 
 def money(value):
-    whole, _, fraction = format(value, ',.4f').partition('.')
-    return '¥' + whole + '.' + fraction.rstrip('0').ljust(2, '0')
+    return '¥' + format(value, ',.4f')
 
 
 class ZhipuProvider(Provider):

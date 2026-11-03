@@ -34,7 +34,7 @@ class KimiProvider(Provider):
 
         return QuotaResult(
             platform=self.key, label=self.label,
-            display=f"${available:,.2f}",
+            display=f"${available:,.4f}",
             available=available, used=used,
             total=None, unit="USD", percent=None, ok=True,
         )

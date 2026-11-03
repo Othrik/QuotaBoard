@@ -40,6 +40,8 @@ assert dashboard.cards['gemini'].metric_rows[1][2].text() == '99%'
 assert dashboard.cards['gemini'].note.text().count('重置 20:30') == 1
 assert dashboard.cards['dmxapi'].status.text() == '请求失败'
 assert dashboard.cards['openai'].status.text() == '未启用'
+assert dashboard.cards['deepseek'].value.text().startswith('余额 ')
+assert dashboard.cards['zhipu_member'].value.text().startswith('积分 ')
 assert dashboard.cards['deepseek'].detail_rows[0][1].text()=='充值余额 · CNY'
 assert dashboard.cards['deepseek'].detail_rows[1][2].text()=='¥6.42'
 scheduler.result_ready.emit('deepseek',QuotaResult('deepseek','DeepSeek','—',ok=False,error='test failure'))

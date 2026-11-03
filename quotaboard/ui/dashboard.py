@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QFra
     QScrollArea, QVBoxLayout, QWidget, QMessageBox)
 from ..model import PLATFORM_META, QuotaResult
 from .. import __version__
+from ..balance_display import balance_display
 from .floating_window import _platform_logo, _pct_color, make_app_icon
 from .settings_dialog import SettingsDialog
 
@@ -163,7 +164,7 @@ class QuotaCard(QFrame):
         if success and not metrics and result.percent is not None:
             metrics = [dict(label='剩余额度', percent=result.percent)]
         self.value.setVisible(not (success and result.metrics))
-        self.value.setText(result.display if success else '—' if enabled else '尚未接入')
+        self.value.setText(balance_display(result) if success else '—' if enabled else '尚未接入')
         notes = []
         for index, (widget, name, amount, bar) in enumerate(self.metric_rows):
             widget.setVisible(index < len(metrics))

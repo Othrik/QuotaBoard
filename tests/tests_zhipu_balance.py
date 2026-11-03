@@ -19,14 +19,14 @@ class Balance(unittest.TestCase):
         self.assertAlmostEqual(result.available,8.663060440)
         self.assertIsNone(result.percent)
         self.assertIsNone(result.total)
-        self.assertIn('累计充值 ¥10.00',result.sub_note)
+        self.assertIn('累计充值 ¥10.0000',result.sub_note)
 
     def test_zero_and_negative_are_real_balances(self):
-        self.assertEqual(self.query(report(availableBalance=0,balance=20)).display,'¥0.00')
+        self.assertEqual(self.query(report(availableBalance=0,balance=20)).display,'¥0.0000')
         self.assertEqual(self.query(report(availableBalance='-0.1234')).display,'¥-0.1234')
 
     def test_null_balance_fallback_and_missing_data(self):
-        self.assertEqual(self.query(report(availableBalance=None,balance='12.34')).display,'¥12.34')
+        self.assertEqual(self.query(report(availableBalance=None,balance='12.34')).display,'¥12.3400')
         for fields in ({},{'availableBalance':'NaN'},{'availableBalance':True},{'availableBalance':'Infinity'}):
             self.assertFalse(self.query(report(**fields)).ok)
 

@@ -15,7 +15,7 @@ class Details(unittest.TestCase):
         result=self.parse(payload(total_balance='18.24015',topped_up_balance='17',granted_balance='1.24015'))
         self.assertTrue(result.ok)
         self.assertEqual(result.display,'¥18.2402')
-        self.assertEqual(result.details[0],{'label':'充值余额 · CNY','value':'¥17.00'})
+        self.assertEqual(result.details[0],{'label':'充值余额 · CNY','value':'¥17.0000'})
         self.assertEqual(result.details[1],{'label':'赠送余额 · CNY','value':'¥1.2402'})
         self.assertTrue(result.account_available)
         self.assertIsNone(result.used);self.assertIsNone(result.total);self.assertIsNone(result.percent)
@@ -24,7 +24,7 @@ class Details(unittest.TestCase):
         result=self.parse({'balance_infos':[
             {'currency':'CNY','total_balance':'12.34','granted_balance':'0'},
             {'currency':'USD','total_balance':'-1.58','topped_up_balance':'-1.58'}]})
-        self.assertEqual(result.display,'¥12.34 · -$1.58')
+        self.assertEqual(result.display,'¥12.3400 · -$1.5800')
         self.assertIsNone(result.available);self.assertEqual(result.unit,'')
         self.assertEqual(result.details[0]['label'],'赠送余额 · CNY')
         self.assertEqual(result.details[1]['label'],'充值余额 · USD')
