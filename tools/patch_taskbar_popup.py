@@ -115,6 +115,12 @@ new='''                        auto frame = g_quotaDisplayedFrames.find(instance
                             auto data = frame->second.context.GetNamedObject(L"data");
                             const auto platform = JsonString(data, L"platform");
                             if (!platform.empty()) {
+                                long long owner = 0;
+                                const auto control = ReadUtf8File(GetTaskbarWidgetsPath(L"managed-control.json"));
+                                if (ExtractJsonInt64(control, "owner", owner) && owner > 0 && owner <= MAXDWORD) {
+                                    // Transfer focus permission from this user click to QuotaBoard.
+                                    AllowSetForegroundWindow(static_cast<DWORD>(owner));
+                                }
                                 WriteTaskbarWidgetsCommand(L"showQuotaDetails", L"", instanceId,
                                     std::nullopt, std::nullopt, platform);
                                 Wh_Log(L"QuotaBoard detail request: %s", platform.c_str());
