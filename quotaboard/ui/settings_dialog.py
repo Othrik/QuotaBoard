@@ -27,7 +27,7 @@ GUIDES={
  'openai':'填写 OpenAI 平台 API Key，用于查询 API 账户额度。',
  'deepseek':'填写 DeepSeek 开放平台 API Key，用于查询账户余额。',
  'kimi':'填写 Moonshot / Kimi 开放平台 API Key，用于查询账户余额。',
- 'zhipu':'填写智谱开放平台 API Key，用于查询 API 额度。',
+ 'zhipu':'填写智谱开放平台 API Key，自动查询账户可用余额，无需网页登录。这里显示预付费人民币余额，不是 GLM Coding Plan 的订阅额度。',
  'volc':'填写火山方舟 Access Key 与 Secret Key，再选择需要查询的额度类型。',
 }
 STYLE='''
