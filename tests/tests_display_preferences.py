@@ -23,7 +23,7 @@ w.native_taskbar=Native()
 w.on_results({k:QuotaResult(k,PLATFORM_META[k]['label'],'80%') for k in ('codex','gemini','doubao')})
 app.processEvents()
 assert [r.platform for r in w.native_taskbar.rows]==['codex','gemini','doubao']
-assert [w.body.itemAt(i).widget().findChild(QLabel,'platformName').text() for i in range(w.body.count())]==['ChatGPT','豆包']
+assert [w.body.itemAt(i).widget().findChild(QLabel,'platformName').property('plainText') for i in range(w.body.count())]==['ChatGPT','豆包']
 assert [r.platform for r in w._dock_rows]==['codex','doubao']
 d=SettingsDialog(c);d.navigation.setCurrentRow(1)
 assert d.page_title.text()=='AI 显示顺序'

@@ -25,7 +25,7 @@ for options in [None,dict(family='DengXian',weight=400,name_size=14,quota_size=1
  assert title['fontFamily']==style['family'] and title['fontWeight']==WEIGHTS[style['weight']]
  assert 40<=layout['height']<=48
  for part in parts:
-  if part['type']=='text':assert part['fontFamily']==style['quota_family'] and part['fontWeight']==WEIGHTS[style['quota_weight']]
+  if part['type']=='text':assert part['fontFamily']==style['quota_cjk_family' if any(ord(ch)>=0x2E80 for ch in part['text']) else 'quota_family'] and part['fontWeight']==WEIGHTS[style['quota_weight']]
 combined=typography(dict(family='Segoe UI Variable Text',weight=400,name_size=12,quota_family='Segoe UI Variable Display',quota_weight=600,quota_size=15))
 assert combined['family']!=combined['quota_family'] and combined['weight']!=combined['quota_weight'],'Name and quota fonts must be adjustable independently'
 assert typography({'family':'invalid','weight':None,'quota_family':'bogus'})['quota_family']=='Segoe UI Variable Text'

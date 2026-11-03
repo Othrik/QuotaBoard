@@ -8,10 +8,11 @@ from ..config import Config
 from .. import __version__
 from ..model import PLATFORM_META
 from ..providers import PROVIDERS
-from ..typography import typography,FAMILIES,DEFAULT_PRESET
+from ..typography import typography,FAMILIES,DEFAULT_PRESET,DEFAULT_FLOATING_PRESET,floating_typography,mixed_text
 from .floating_window import _resource_path,PLATFORM_LOGO
 
 FONT_LABELS={'Microsoft YaHei UI':'微软雅黑 UI','Microsoft YaHei':'微软雅黑','DengXian':'等线',
+ 'SimSun':'宋体','SimHei':'黑体','KaiTi':'楷体','FangSong':'仿宋',
  'Segoe UI Variable Text':'Segoe UI Var Text','Segoe UI Variable Text Semilight':'Segoe UI Var Text Semilight','Segoe UI Variable Text Semibold':'Segoe UI Var Text Bold',
  'Segoe UI Variable Display':'Segoe UI Var Display','Segoe UI Variable Display Semilight':'Segoe UI Var Display Semilight','Segoe UI Variable Display Light':'Segoe UI Var Display Light','Segoe UI Variable Display Semibold':'Segoe UI Var Display Bold',
  'Segoe UI Variable':'Segoe UI Var（可变）','Segoe UI':'Segoe UI'}
@@ -75,7 +76,7 @@ def card(title):
 class SettingsDialog(QDialog):
     saved=Signal()
     def __init__(self,config:Config,parent:QWidget|None=None):
-        super().__init__(parent);self.config=config;self._workers={}
+        super().__init__(parent);self.config=config;self._workers={};self._type_controls={}
         self.setWindowTitle('QuotaBoard 设置');self.setMinimumSize(680,480);self.setStyleSheet(STYLE)
         # 独立普通窗口：不强制置顶，可被其他窗口遮挡、可在任务栏找到
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,False)
@@ -96,6 +97,7 @@ class SettingsDialog(QDialog):
         self.pages=QStackedWidget();right.addWidget(self.pages,1);content.addLayout(right,1);outer.addLayout(content,1)
         self.navigation.addItem('通用与显示');self._general_page()
         order_item=QListWidgetItem('AI 显示顺序');order_item.setData(Qt.UserRole,'__order__');self.navigation.addItem(order_item);self._order_page()
+        font_item=QListWidgetItem('字体设置');font_item.setData(Qt.UserRole,'__fonts__');self.navigation.addItem(font_item);self._font_page()
         for key,meta in PLATFORM_META.items():
             item=QListWidgetItem(meta['label']);item.setData(Qt.UserRole,key);item.setIcon(QIcon(_resource_path('assets/logo/'+PLATFORM_LOGO.get(key,'openai.png'))));self.navigation.addItem(item);self.nav_items[key]=item;self._platform_page(key,meta)
         self.navigation.currentRowChanged.connect(self._select_page);self.navigation.setCurrentRow(0)
@@ -105,27 +107,46 @@ class SettingsDialog(QDialog):
         _,lay=self._scroll_page()
         box,v=card('任务栏显示');self.taskbar_check=QCheckBox('在任务栏常驻显示 AI 额度');v.addWidget(self.taskbar_check);v.addWidget(muted('点击任务栏额度打开总览；总览卡片可分别勾选是否参与任务栏轮播。请求失败的平台暂停轮播，成功后自动恢复。'))
         row=QHBoxLayout();row.addWidget(QLabel('左右微调'));self.position_spin=QSpinBox();self.position_spin.setRange(-4096,4096);self.position_spin.setSuffix(' 像素');self.position_spin.setFixedWidth(140);row.addWidget(self.position_spin);reset=QPushButton('恢复左侧位置');reset.clicked.connect(self._reset_position);row.addWidget(reset);row.addStretch();v.addLayout(row);lay.addWidget(box)
-        box,v=card('名称与额度字体');form=QFormLayout();form.setSpacing(10)
-        def font_combo():
-            combo=QComboBox()
-            for family in FAMILIES:combo.addItem(FONT_LABELS.get(family,family),family)
-            return combo
-        def weight_combo():
-            combo=QComboBox()
-            for label,weight in [('标准',400),('较粗',600),('粗体',700)]:combo.addItem(label,weight)
-            return combo
-        self.font_family=font_combo();self.font_weight=weight_combo();self.quota_family=font_combo();self.quota_weight=weight_combo()
-        self.name_size=QSpinBox();self.name_size.setRange(10,16);self.name_size.setSuffix(' px');self.quota_size=QSpinBox();self.quota_size.setRange(10,18);self.quota_size.setSuffix(' px')
-        row=QHBoxLayout();row.addWidget(QLabel('字体'));row.addWidget(self.font_family,1);row.addSpacing(8);row.addWidget(QLabel('粗细'));row.addWidget(self.font_weight);row.addSpacing(8);row.addWidget(QLabel('字号'));row.addWidget(self.name_size);form.addRow('AI 名称',row)
-        row=QHBoxLayout();row.addWidget(QLabel('字体'));row.addWidget(self.quota_family,1);row.addSpacing(8);row.addWidget(QLabel('粗细'));row.addWidget(self.quota_weight);row.addSpacing(8);row.addWidget(QLabel('字号'));row.addWidget(self.quota_size);form.addRow('额度数字',row)
-        v.addLayout(form)
-        preset=QPushButton('恢复默认（名称 Text / 额度 Display，均为较粗 12px）');preset.clicked.connect(self._restore_typography_defaults);v.addWidget(preset)
-        preview=QHBoxLayout();self.preview_name=QLabel('ChatGPT');self.preview_quota=QLabel('5h 88% · 周 99%');preview.addWidget(self.preview_name);preview.addWidget(self.preview_quota);preview.addStretch();v.addLayout(preview)
-        v.addWidget(muted('名称与额度可分别设置字体、粗细与字号；任务栏与展示板共用这套组合。'))
-        for control in [self.font_family,self.font_weight,self.quota_family,self.quota_weight]:control.currentIndexChanged.connect(self._preview_typography)
-        for control in [self.name_size,self.quota_size]:control.valueChanged.connect(self._preview_typography)
-        lay.addWidget(box)
         box,v=card('自动刷新');row=QHBoxLayout();row.addWidget(QLabel('刷新间隔'));self.interval_spin=QSpinBox();self.interval_spin.setRange(1,1440);self.interval_spin.setSuffix(' 分钟');self.interval_spin.setFixedWidth(140);row.addWidget(self.interval_spin);row.addStretch();v.addLayout(row);lay.addWidget(box)
+        lay.addStretch()
+    def _font_page(self):
+        _,lay=self._scroll_page()
+        lay.addWidget(muted('中文与西文/数字分别选择字体；每组文字共用字号和粗细。任务栏与悬浮窗分别保存，互不影响。'))
+        for scope,title in [('taskbar','任务栏字体'),('floating','悬浮窗字体')]:
+            box,v=card(title);form=QFormLayout();form.setSpacing(10);controls={}
+            self._type_controls[scope]=controls
+            roles=[('name','AI 名称'),('quota','额度 / 百分比')]
+            if scope=='floating':roles.append(('note','时间 / 辅助文字'))
+            for role,caption in roles:
+                latin='family' if role=='name' else role+'_family'
+                cjk='cjk_family' if role=='name' else role+'_cjk_family'
+                weight='weight' if role=='name' else role+'_weight'
+                size='name_size' if role=='name' else role+'_size'
+                row=QHBoxLayout()
+                for key,text in [(cjk,'中文'),(latin,'西文/数字')]:
+                    combo=QComboBox();combo.setMinimumContentsLength(6);combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+                    for family in FAMILIES:combo.addItem(FONT_LABELS.get(family,family),family)
+                    controls[key]=combo;row.addWidget(QLabel(text));row.addWidget(combo,1)
+                    combo.currentIndexChanged.connect(self._preview_typography)
+                form.addRow(caption,row)
+                row=QHBoxLayout();combo=QComboBox()
+                for text,value in [('标准',400),('较粗',600),('粗体',700)]:combo.addItem(text,value)
+                controls[weight]=combo;row.addWidget(QLabel('粗细'));row.addWidget(combo)
+                spin=QSpinBox();spin.setRange(9 if role=='note' else 10,18 if role=='note' else 24 if scope=='floating' else 16 if role=='name' else 18);spin.setSuffix(' px')
+                controls[size]=spin;row.addWidget(QLabel('字号'));row.addWidget(spin);row.addStretch();form.addRow('',row)
+                combo.currentIndexChanged.connect(self._preview_typography);spin.valueChanged.connect(self._preview_typography)
+            v.addLayout(form)
+            for role,text in [('name','ChatGPT · 豆包'),('quota','5h 88% · 周 99%'),('note','刷新 20:01 · 周重置 11-07')]:
+                if role=='note' and scope=='taskbar':continue
+                preview=QLabel();preview.setTextFormat(Qt.RichText);preview.setProperty('sample',text)
+                controls['preview_'+role]=preview;v.addWidget(preview)
+            reset=QPushButton('恢复本区域默认字体');reset.clicked.connect(lambda _,s=scope:self._restore_profile(s));v.addWidget(reset)
+            lay.addWidget(box)
+        taskbar=self._type_controls['taskbar']
+        self.font_family=taskbar['family'];self.font_weight=taskbar['weight'];self.name_size=taskbar['name_size']
+        self.quota_family=taskbar['quota_family'];self.quota_weight=taskbar['quota_weight'];self.quota_size=taskbar['quota_size']
+        self.name_cjk_family=taskbar['cjk_family'];self.quota_cjk_family=taskbar['quota_cjk_family']
+        self.preview_name=taskbar['preview_name'];self.preview_quota=taskbar['preview_quota']
         lay.addStretch()
     def _order_page(self):
         _,lay=self._scroll_page()
@@ -166,7 +187,7 @@ class SettingsDialog(QDialog):
         status=QLabel('测试仅检查连接，不会保存本页更改。');status.setWordWrap(True);status.setObjectName('muted');v.addWidget(status);self.test_buttons[key]=button;self.test_status[key]=status;lay.addWidget(box);lay.addStretch()
     def _select_page(self,index):
         if index<0:return
-        self.pages.setCurrentIndex(index);item=self.navigation.item(index);self.page_title.setText('通用与显示' if index==0 else 'AI 显示顺序' if item.data(Qt.UserRole)=='__order__' else PLATFORM_META[item.data(Qt.UserRole)]['label'])
+        self.pages.setCurrentIndex(index);item=self.navigation.item(index);self.page_title.setText('通用与显示' if index==0 else 'AI 显示顺序' if item.data(Qt.UserRole)=='__order__' else '字体设置' if item.data(Qt.UserRole)=='__fonts__' else PLATFORM_META[item.data(Qt.UserRole)]['label'])
     def _nav_state(self,key,checked):
         self.nav_items[key].setText(PLATFORM_META[key]['label']+(' · 已启用' if checked else ''))
         self._refresh_order_labels()
@@ -199,34 +220,36 @@ class SettingsDialog(QDialog):
             self._refresh_order_labels()
     def _move_order(self,delta):
         self._move_order_to(self.order_list.currentRow()+delta)
-    def _typography_value(self):
-        return typography(dict(family=self.font_family.currentData(),weight=self.font_weight.currentData(),name_size=self.name_size.value(),
-                               quota_family=self.quota_family.currentData(),quota_weight=self.quota_weight.currentData(),quota_size=self.quota_size.value()))
-    def _restore_typography_defaults(self):
-        self.font_family.setCurrentIndex(max(0,self.font_family.findData(DEFAULT_PRESET['family'])))
-        self.font_weight.setCurrentIndex(max(0,self.font_weight.findData(DEFAULT_PRESET['weight'])))
-        self.name_size.setValue(DEFAULT_PRESET['name_size'])
-        self.quota_family.setCurrentIndex(max(0,self.quota_family.findData(DEFAULT_PRESET['quota_family'])))
-        self.quota_weight.setCurrentIndex(max(0,self.quota_weight.findData(DEFAULT_PRESET['quota_weight'])))
-        self.quota_size.setValue(DEFAULT_PRESET['quota_size'])
+    def _profile_value(self,scope):
+        controls=self._type_controls[scope];values={}
+        for key in DEFAULT_PRESET:
+            if key not in controls:continue
+            control=controls[key];values[key]=control.value() if isinstance(control,QSpinBox) else control.currentData()
+        return typography(values,floating=scope=='floating')
+    def _typography_value(self):return self._profile_value('taskbar')
+    def _set_profile(self,scope,style):
+        for key,control in self._type_controls[scope].items():
+            if key.startswith('preview_'):continue
+            if isinstance(control,QSpinBox):control.setValue(style[key])
+            else:control.setCurrentIndex(max(0,control.findData(style[key])))
+    def _restore_profile(self,scope):
+        self._set_profile(scope,DEFAULT_FLOATING_PRESET if scope=='floating' else DEFAULT_PRESET)
         self._preview_typography()
+    def _restore_typography_defaults(self):self._restore_profile('taskbar')
     def _preview_typography(self):
-        style=self._typography_value()
-        self.preview_name.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['name_size']}px;font-weight:{style['weight']};")
-        self.preview_quota.setStyleSheet(f"font-family:'{style['quota_family']}';font-size:{style['quota_size']}px;font-weight:{style['quota_weight']};color:#219C77;")
+        for scope,controls in self._type_controls.items():
+            style=self._profile_value(scope)
+            for role in ('name','quota','note'):
+                preview=controls.get('preview_'+role)
+                if preview is not None:preview.setText(mixed_text(preview.property('sample'),style,role))
     def _load(self):
         for key,meta in PLATFORM_META.items():
             self.enable_checks[key].setChecked(self.config.is_enabled(key))
             for field,_ in meta['credential_fields']:
                 saved=bool(self.config.get_credential(key,field));self.field_inputs[key][field].setPlaceholderText('已保存，留空保留' if saved else '未配置')
             if key=='volc':self.volc_actions[key].setCurrentIndex(1 if self.config.platform_cfg(key).get('action')=='ListModelInferenceLimits' else 0)
-        style=typography(self.config._data.get('display_typography'))
-        self.font_family.setCurrentIndex(max(0,self.font_family.findData(style['family'])))
-        self.font_weight.setCurrentIndex(max(0,self.font_weight.findData(style['weight'])))
-        self.name_size.setValue(style['name_size'])
-        self.quota_family.setCurrentIndex(max(0,self.quota_family.findData(style['quota_family'])))
-        self.quota_weight.setCurrentIndex(max(0,self.quota_weight.findData(style['quota_weight'])))
-        self.quota_size.setValue(style['quota_size'])
+        self._set_profile('taskbar',typography(self.config._data.get('display_typography')))
+        self._set_profile('floating',floating_typography(self.config._data))
         self._preview_typography()
         self.interval_spin.setValue(self.config.refresh_interval_minutes);self.taskbar_check.setChecked(bool(self.config._data.get('taskbar_mode',False)))
         position=self.config._data.get('taskbar_position',{});self._anchor_percent=position.get('anchorPercent',0);self.position_spin.setValue(position.get('offsetPx',0))
@@ -251,6 +274,7 @@ class SettingsDialog(QDialog):
                     if text:self.config.set_credential(key,field,text)
                 if key=='volc':self.config.platform_cfg(key)['action']='ListModelInferenceLimits' if self.volc_actions[key].currentIndex()==1 else 'GetUsageDetails'
             self.config._data['display_typography']=self._typography_value()
+            self.config._data['floating_typography']=self._profile_value('floating')
             self.config._data['taskbar_mode']=self.taskbar_check.isChecked();self.config._data['taskbar_position']=dict(anchorPercent=self._anchor_percent,offsetPx=self.position_spin.value());self.config.refresh_interval_minutes=self.interval_spin.value()
             self.config.platform_order=[self.order_list.item(i).data(Qt.UserRole) for i in range(self.order_list.count())];self.config.save()
         except Exception as error:

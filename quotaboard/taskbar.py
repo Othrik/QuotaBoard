@@ -57,7 +57,7 @@ class TaskbarController(QObject):
             from .ui.floating_window import _dock_quota_text,_resource_path,PLATFORM_LOGO
             playable=rotation_candidates(self.rows,self.config._data.get('platforms'))
             row=playable[(int(time.monotonic())//5)%len(playable)] if playable else QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
-            layout=make_layout(_dock_quota_text(row),self.config._data.get('display_typography'))
+            layout=make_layout(_dock_quota_text(row),self.config._data.get('display_typography'),taskbar_label(row))
             details=make_details(row)
             entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=layout['width'],height=layout['height'],layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='click',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
             # 目录与状态只在内容变化时落盘：任务栏组件监听这些文件，

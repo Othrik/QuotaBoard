@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 
 from ..config import Config
 from ..model import QuotaResult
-from ..typography import typography
+from ..typography import typography,floating_typography,mixed_text,restyle_markup
 from ..scheduler import Scheduler
 
 C_GREEN = "#27AE80"
@@ -187,20 +187,23 @@ class _Donut(QWidget):
     """环形图：外圈进度环 + 中心百分比 + 底部标签。
     圈体较小、条带两端圆头、底部标签与圈保持间距。"""
 
-    def __init__(self, percent: float, color: str, label: str = "", font_family="Microsoft YaHei UI", font_weight=700) -> None:
+    def __init__(self, percent: float, color: str, label: str = "", font_family="Microsoft YaHei UI", font_weight=700, font_size=12, cjk_family=None) -> None:
         super().__init__()
         self._pct = max(0.0, min(100.0, float(percent)))
         self._color = color
         self._label = label
         self._font_family = font_family
         self._font_weight = font_weight
+        self._font_size = font_size
+        self._cjk_family = cjk_family or font_family
+        self._diameter = max(34,round(font_size*2.8))
         # 高 55：标签区底部落在 widget 内，避免「5h / 周」下沿被裁
-        self.setFixedSize(46, 55)
+        self.setFixedSize(self._diameter+12, self._diameter+font_size+12)
 
     def paintEvent(self, event) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        ring = QRectF(6, 3, 34, 34)
+        ring = QRectF(6, 3, self._diameter, self._diameter)
         # 底环
         p.setPen(QPen(QColor("#EEF0F2"), 5))
         p.drawEllipse(ring)
@@ -211,19 +214,19 @@ class _Donut(QWidget):
         # 从顶部（90°）逆时针画剩余比例
         p.drawArc(ring, 90 * 16, int(-self._pct * 3.6 * 16))
         f = QFont(self._font_family)
-        f.setPointSize(8)
+        f.setPixelSize(self._font_size)
         f.setWeight(QFont.Weight(self._font_weight))
         p.setFont(f)
         p.setPen(QColor(TEXT_MAIN))
         p.drawText(ring, Qt.AlignmentFlag.AlignCenter, f"{self._pct:.0f}%")
         if self._label:
-            f2 = QFont(self._font_family)
+            f2 = QFont(self._cjk_family if any(ord(ch)>=0x2E80 for ch in self._label) else self._font_family)
             f2.setWeight(QFont.Weight(self._font_weight))
-            f2.setPointSize(8)
+            f2.setPixelSize(self._font_size)
             p.setFont(f2)
             p.setPen(QColor(TEXT_SUB))
             # 标签与圈底保持间距，避免贴太近
-            p.drawText(QRectF(0, 43, 46, 10), Qt.AlignmentFlag.AlignCenter,
+            p.drawText(QRectF(0, self._diameter+9, self.width(), self._font_size+3), Qt.AlignmentFlag.AlignCenter,
                        self._label)
         p.end()
 
@@ -253,10 +256,13 @@ class _Row(QFrame):
         left = QVBoxLayout()
         left.setSpacing(3)
         left.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        style = typography(typography_options)
+        style = typography(typography_options,floating=True)
         name = QLabel(result.label)
         name.setObjectName('platformName')
-        name.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['name_size']+2}px;font-weight:{style['weight']};color:{TEXT_MAIN};")
+        name.setProperty('plainText',result.label)
+        name.setTextFormat(Qt.TextFormat.RichText)
+        name.setText(mixed_text(result.label,style,'name'))
+        name.setStyleSheet(f"color:{TEXT_MAIN};")
         sub = result.updated_at.rsplit(" ", 1)[-1]
         if result.error:
             sub = f"失败：{result.error}"
@@ -273,9 +279,11 @@ class _Row(QFrame):
         # Visibility is set before the nested layout is attached. Without an
         # explicit parent, setVisible(True) briefly opens a standalone window.
         note = QLabel(sub, self)
-        note.setStyleSheet(f"font-size: 11px; color: {TEXT_SUB};")
+        note.setTextFormat(Qt.TextFormat.RichText)
+        note.setText(mixed_text(sub,style,'note'))
+        note.setStyleSheet(f"color:{TEXT_SUB};")
         note.setWordWrap(False)
-        note.setMaximumWidth(170)
+        note.setMaximumWidth(max(170,17*style['note_size']))
         note.setToolTip(sub)
         left.addWidget(name)
         left.addWidget(note)
@@ -294,11 +302,13 @@ class _Row(QFrame):
                 except (TypeError, ValueError):
                     m_pct = 0.0
                 donuts.addWidget(_Donut(m_pct, _pct_color(m_pct),
-                                        str(m.get("label", "")), font_family=style["quota_family"], font_weight=style["quota_weight"]))
+                                        str(m.get("label", "")), font_family=style["quota_family"], font_weight=style["quota_weight"],font_size=style['quota_size'],cjk_family=style['quota_cjk_family']))
             right.addLayout(donuts)
         else:
             val = QLabel(result.display if result.ok else "—")
-            val.setStyleSheet(f"font-family:'{style['quota_family']}';font-size:{style['quota_size']+2}px;font-weight:{style['quota_weight']};color:{TEXT_MAIN};")
+            val.setTextFormat(Qt.TextFormat.RichText)
+            val.setText(mixed_text(result.display if result.ok else '—',style,'quota'))
+            val.setStyleSheet(f"color:{TEXT_MAIN};")
             val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             right.addWidget(val)
 
@@ -659,7 +669,7 @@ class FloatingWindow(QWidget):
             self.body.addWidget(tip)
         else:
             for r in rows:
-                self.body.addWidget(_Row(r, manual=(r.platform == "manual"), typography_options=self.config._data.get("display_typography")))
+                self.body.addWidget(_Row(r, manual=(r.platform == "manual"), typography_options=floating_typography(self.config._data)))
 
         # 头部不再显示「N 个偏低/告警/正常」摘要（用户要求移除）
         self.head_summary.setText("")
@@ -678,6 +688,12 @@ class FloatingWindow(QWidget):
         self.update_size()
 
     def update_size(self) -> None:
+        style=floating_typography(self.config._data)
+        for button in self.header_buttons:
+            button.setFixedSize(max(34,style['note_size']*2+12),max(26,style['note_size']+12))
+            button.setStyleSheet(f"QPushButton {{border:none;border-radius:6px;color:#667085;font-family:'{style['note_cjk_family']}';font-size:{style['note_size']}px;font-weight:{style['note_weight']};}} QPushButton:hover {{background:#EAF0FC;color:#4169E1;}}")
+        self.head_title.setTextFormat(Qt.TextFormat.RichText)
+        self.head_title.setText(mixed_text('AI 额度',style,'name'))
         self.setMinimumSize(0, 0)
         self.setMaximumSize(16777215, 16777215)
         self.card.graphicsEffect().setEnabled(not bool(self._dock_edge))
@@ -691,7 +707,7 @@ class FloatingWindow(QWidget):
         self.card_lay.setSpacing(6 if self.expanded else 0)
         self.header.layout().setContentsMargins(*( (10, 4, 10, 4) if self.expanded else (8, 8, 8, 8) ))
         self.header.layout().setStretch(1, 1 if self.expanded else 0)
-        self.header.setFixedHeight(max(38, self.head_title.fontMetrics().height() + 12) if self.expanded else 32)
+        self.header.setFixedHeight(max(38,style['name_size']+20) if self.expanded else 32)
         self.head_title.setVisible(self.expanded)
         for button in self.header_buttons:
             button.setVisible(self.expanded)
@@ -708,14 +724,16 @@ class FloatingWindow(QWidget):
                 w.setVisible(not self.expanded)
         # 展开态头部右侧显示最近刷新时间；折叠态隐藏（让位给 AI 图标）
         if self.expanded and self._last_refresh:
-            self.head_summary.setText(f"刷新 {self._last_refresh}")
+            self.head_summary.setTextFormat(Qt.TextFormat.RichText)
+            self.head_summary.setText(mixed_text(f"刷新 {self._last_refresh}",style,'note'))
             self.head_summary.setVisible(True)
         else:
             self.head_summary.clear()
             self.head_summary.setVisible(False)
 
         if self.expanded:
-            self.setFixedWidth(380)
+            scale=max(1,style['name_size']/14,style['quota_size']/14,style['note_size']/11)
+            self.setFixedWidth(min(self.screen().availableGeometry().width()-16,round(380*scale)))
             # 解除折叠时的高度限制，让 adjustSize 自适应
             self.setMinimumHeight(0)
             self.setMaximumHeight(16777215)
@@ -747,15 +765,15 @@ class FloatingWindow(QWidget):
                 line.addWidget(logo)
             else:
                 line.addWidget(QLabel(result.label))
-            style = typography(self.config._data.get("display_typography"))
-            text = _dock_quota_text(result, font_weight=style["weight"])
+            style = floating_typography(self.config._data)
+            text = restyle_markup(_dock_quota_text(result,font_weight=style['quota_weight']),style,'quota')
             value = QLabel(text)
             value.setTextFormat(Qt.TextFormat.RichText)
-            value.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['quota_size']}px;font-weight:{style['weight']};color:{TEXT_MAIN if result.ok else C_RED};")
+            value.setStyleSheet(f"color:{TEXT_MAIN if result.ok else C_RED};")
             line.addWidget(value)
             cell.setToolTip(_quota_details(result))
             for child in [cell] + cell.findChildren(QWidget):
-                child.setProperty("quotaHover", _quota_details(result))
+                child.setProperty("quotaHover", restyle_markup(_quota_details(result),style,'note',font_only=True))
                 child.setToolTip("")
                 child.installEventFilter(self)
             self.dock_layout.addWidget(cell)
@@ -773,7 +791,8 @@ class FloatingWindow(QWidget):
         geo = self.screen().availableGeometry()
         if horizontal:
             limit = min(360, geo.width() - 16) if self._dock_edge == "taskbar" else geo.width()
-            self.setFixedSize(min(limit, hint.width() + 4), 54 if hint.width() + 4 > limit else 36)
+            row_height=max(36,style['quota_size']+16) if self._dock_rows else 36
+            self.setFixedSize(min(limit, hint.width() + 4), max(54,row_height) if hint.width() + 4 > limit else row_height)
         else:
             self.setFixedSize(hint.width() + 4, min(geo.height(), hint.height() + 4))
         self._anchor_dock()

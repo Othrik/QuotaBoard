@@ -1,7 +1,7 @@
 """Native taskbar layout built from the floating board's quota markup."""
 from html.parser import HTMLParser
 import re
-from .typography import typography,WEIGHTS
+from .typography import typography,WEIGHTS,script_runs
 
 class QuotaMarkup(HTMLParser):
     def __init__(self):
@@ -32,17 +32,28 @@ class QuotaMarkup(HTMLParser):
             else:
                 self.parts.append(dict(type='text',text=token,color=color,fontWeight=weight,fontSize=12,height=18,verticalAlignment='center'))
 
-def make_layout(markup,options=None):
+def make_layout(markup,options=None,title_text=None):
     parser=QuotaMarkup();parser.feed(markup);style=typography(options)
     name_height=style['name_size']+4;quota_height=style['quota_size']+4
     height=40;vertical_padding=max(1,(height-name_height-quota_height)//2);row_height=height-2*vertical_padding
     width=max(220,round(220*max(style['name_size']/12,style['quota_size']/12)))
     name_weight=WEIGHTS[style['weight']]
     quota_weight=WEIGHTS[style['quota_weight']]
+    parser.parts=[piece for part in parser.parts for piece in
+                  ([dict(part,text=run,fontFamily=style['quota_cjk_family'] if script=='cjk' else style['quota_family']) for run,script in script_runs(part['text'])] if part['type']=='text' else [part])]
     for part in parser.parts:
-        if part['type']=='text':part.update(fontFamily=style['quota_family'],fontSize=style['quota_size'],fontWeight=quota_weight,height=quota_height)
+        if part['type']=='text':part.update(fontSize=style['quota_size'],fontWeight=quota_weight,height=quota_height)
         else:part['width']=max(4,round(part['width']*style['quota_size']/12))
     title=dict(type='text',bind='data.label',fontFamily=style['family'],fontSize=style['name_size'],fontWeight=name_weight,height=name_height,color='#FF17202B',horizontalAlignment='left')
+    if title_text is not None:
+        from html import escape
+        title_parser=QuotaMarkup();title_parser.feed(escape(title_text))
+        pieces=[]
+        for part in title_parser.parts:
+            if part['type']=='spacer':pieces.append(part);continue
+            for run,script in script_runs(part['text']):
+                pieces.append(dict(part,text=run,fontFamily=style['cjk_family'] if script=='cjk' else style['family'],fontSize=style['name_size'],fontWeight=name_weight,height=name_height))
+        title=dict(type='row',gap=0,height=name_height,horizontalAlignment='left',children=pieces)
     values=dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=parser.parts)
     return dict(type='card',width=width,height=height,backgroundColor='#00000000',padding=dict(left=6,right=8,top=vertical_padding,bottom=vertical_padding),radius=0,children=[dict(type='row',gap=8,height=row_height,verticalAlignment='center',horizontalAlignment='left',children=[dict(type='image',source=dict(bind='data.icon'),width=22,height=22,verticalAlignment='center',stretch='uniform',backgroundColor='#00000000'),dict(type='column',width=width-44,height=row_height,gap=0,verticalAlignment='center',horizontalAlignment='left',children=[title,values])])])
 
