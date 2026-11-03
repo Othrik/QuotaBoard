@@ -12,10 +12,10 @@
       "children": [
         {
           "type": "text",
-          "text": "QuotaBoard · AI 额度",
           "fontSize": 16,
           "fontWeight": "semibold",
-          "color": "#FF111111"
+          "color": "#FF111111",
+          "bind": "data.label"
         },
         {
           "type": "text",

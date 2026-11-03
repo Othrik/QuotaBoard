@@ -14,11 +14,14 @@ from pathlib import Path
 # -*- mode: python ; coding: utf-8 -*-
 
 
+if not Path('assets/taskbar/QuotaBoard.TaskbarHost.exe').exists():
+    raise FileNotFoundError('Build/download the managed taskbar helper before packaging')
+
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('assets/logo', 'assets/logo'), ('assets/QuotaBoard.ico', 'assets')] + [(str(p), '.') for p in Path(sysconfig.get_path('stdlib')).glob('codex-rejected-cas.pem')],
+    datas=[('assets/logo', 'assets/logo'), ('assets/QuotaBoard.ico', 'assets'), ('assets/taskbar', 'assets/taskbar')] + [(str(p), '.') for p in Path(sysconfig.get_path('stdlib')).glob('codex-rejected-cas.pem')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

@@ -52,6 +52,17 @@ class TrayIcon(QSystemTrayIcon):
         act_settings.triggered.connect(self.open_settings)
         menu.addAction(act_settings)
 
+        self.act_taskbar = QAction("任务栏常驻额度", menu)
+        self.act_taskbar.setCheckable(True)
+        self.act_taskbar.setChecked(bool(config._data.get("taskbar_mode", False)))
+        self.act_taskbar.toggled.connect(window.set_taskbar_mode)
+        menu.addAction(self.act_taskbar)
+        def sync_taskbar_check():
+            self.act_taskbar.blockSignals(True)
+            self.act_taskbar.setChecked(bool(config._data.get("taskbar_mode", False)))
+            self.act_taskbar.blockSignals(False)
+        menu.aboutToShow.connect(sync_taskbar_check)
+
         self.act_autostart = QAction("开机自启", menu)
         self.act_autostart.setCheckable(True)
         self.act_autostart.setChecked(self.config.startup_with_windows)

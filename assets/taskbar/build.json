@@ -1,0 +1,12 @@
+{
+  "source": "https://github.com/pfcdev/TaskbarWidgets",
+  "upstream_commit": "c49721cc1cfcdd53d6ad42226410148153c38055",
+  "build_run": "https://github.com/Othrik/QuotaBoard/actions/runs/41664156349",
+  "build_commit": "fda0569f1a22459a20c89b1ed291a7710f1f161d",
+  "sha256": "7fa54555fb0a042f89e6884c69742507eae586196771a7f42d084972e33adc10",
+  "patches": [
+    "tools/patch_taskbar_images.py",
+    "tools/patch_taskbar_managed.py"
+  ],
+  "license": "MIT"
+}

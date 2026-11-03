@@ -45,9 +45,16 @@ def main() -> int:
     app.setQuitOnLastWindowClosed(False)
 
     config = Config()
+    if "--taskbar" in sys.argv or "--no-taskbar" in sys.argv:
+        config._data["taskbar_mode"] = "--taskbar" in sys.argv
+        config.save()
     scheduler = Scheduler(config)
     window = FloatingWindow(config, scheduler)
     tray = TrayIcon(window, scheduler, config)
+    from quotaboard.taskbar import TaskbarController
+    window.native_taskbar = TaskbarController(config, window)
+    window.native_taskbar.failed.connect(lambda message: tray.showMessage("QuotaBoard", message))
+    app.aboutToQuit.connect(window.native_taskbar.stop)
 
     def open_settings() -> None:
         dlg = SettingsDialog(config, window)
@@ -55,6 +62,8 @@ def main() -> int:
             window.render()
             scheduler.apply_interval()
             scheduler.refresh_all()
+
+    window.native_taskbar.settings_requested.connect(open_settings)
 
     # 悬浮窗右键菜单信号
     window.refresh_requested.connect(scheduler.refresh_all)
@@ -66,9 +75,8 @@ def main() -> int:
     window.adjustSize()
     window.move(screen.right() - window.width() - 28, screen.top() + 40)
     window.render()
-    window.show()
-    if window._dock_edge == "taskbar":
-        window._anchor_dock()
+    if not config._data.get("taskbar_mode", False):
+        window.show()
 
     # 启动即拉取一次，随后按间隔自动刷新
     scheduler.start()

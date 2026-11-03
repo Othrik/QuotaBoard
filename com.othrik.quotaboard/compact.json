@@ -1,43 +1,142 @@
 {
-  "type": "row",
+  "type": "card",
   "width": 220,
   "height": 40,
   "gap": 8,
+  "backgroundColor": "#00000000",
+  "radius": 0,
+  "padding": {
+    "left": 8,
+    "right": 8,
+    "top": 3,
+    "bottom": 3
+  },
   "children": [
     {
-      "type": "image",
-      "source": {
-        "bind": "data.icon"
-      },
-      "width": 22,
-      "height": 22,
-      "stretch": "uniform"
-    },
-    {
-      "type": "column",
-      "width": 188,
-      "height": 36,
-      "gap": 0,
+      "type": "row",
+      "width": 204,
+      "height": 34,
+      "gap": 8,
       "children": [
         {
-          "type": "text",
-          "bind": "data.label",
-          "fontSize": 11,
-          "fontWeight": "semibold",
-          "height": 16
+          "type": "image",
+          "source": {
+            "bind": "data.icon"
+          },
+          "width": 22,
+          "height": 22,
+          "stretch": "uniform",
+          "backgroundColor": "#00FFFFFF",
+          "radius": 4,
+          "verticalAlignment": "center"
         },
         {
-          "type": "text",
-          "bind": "data.quota",
-          "fontSize": 11,
-          "height": 18,
-          "marquee": true,
-          "color": {
-            "bind": "data.color",
-            "fallback": "#FF222222"
-          }
+          "type": "column",
+          "width": 174,
+          "height": 34,
+          "gap": 0,
+          "children": [
+            {
+              "type": "text",
+              "bind": "data.label",
+              "fontSize": 11,
+              "fontWeight": "semibold",
+              "height": 16,
+              "color": "#FF17202B",
+              "horizontalAlignment": "left",
+              "verticalAlignment": "center"
+            },
+            {
+              "type": "row",
+              "height": 18,
+              "gap": 0,
+              "horizontalAlignment": "left",
+              "verticalAlignment": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "bind": "data.alert",
+                  "fontSize": 12,
+                  "height": 18,
+                  "fontWeight": "semibold",
+                  "color": "#FFE45D6A",
+                  "verticalAlignment": "center"
+                },
+                {
+                  "type": "text",
+                  "bind": "data.head0",
+                  "fontSize": 12,
+                  "height": 18,
+                  "fontWeight": "normal",
+                  "color": {
+                    "bind": "data.headColor0",
+                    "fallback": "#FF17202B"
+                  },
+                  "verticalAlignment": "center"
+                },
+                {
+                  "type": "text",
+                  "bind": "data.value0",
+                  "fontSize": 12,
+                  "height": 18,
+                  "fontWeight": "semibold",
+                  "color": {
+                    "bind": "data.valueColor0",
+                    "fallback": "#FF17202B"
+                  },
+                  "verticalAlignment": "center"
+                },
+                {
+                  "type": "text",
+                  "bind": "data.separator",
+                  "fontSize": 12,
+                  "height": 18,
+                  "fontWeight": "normal",
+                  "color": "#FF17202B",
+                  "verticalAlignment": "center"
+                },
+                {
+                  "type": "text",
+                  "bind": "data.head1",
+                  "fontSize": 12,
+                  "height": 18,
+                  "fontWeight": "normal",
+                  "color": {
+                    "bind": "data.headColor1",
+                    "fallback": "#FF17202B"
+                  },
+                  "verticalAlignment": "center"
+                },
+                {
+                  "type": "text",
+                  "bind": "data.value1",
+                  "fontSize": 12,
+                  "height": 18,
+                  "fontWeight": "semibold",
+                  "color": {
+                    "bind": "data.valueColor1",
+                    "fallback": "#FF17202B"
+                  },
+                  "verticalAlignment": "center"
+                },
+                {
+                  "type": "text",
+                  "bind": "data.suffix",
+                  "fontSize": 12,
+                  "height": 18,
+                  "fontWeight": "normal",
+                  "color": "#FF17202B",
+                  "verticalAlignment": "center"
+                }
+              ]
+            }
+          ],
+          "horizontalAlignment": "left",
+          "verticalAlignment": "center"
         }
-      ]
+      ],
+      "horizontalAlignment": "left",
+      "verticalAlignment": "center"
     }
   ]
 }

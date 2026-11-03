@@ -34,3 +34,6 @@ test-temp/
 build-fixed/
 build-isolated/
 build-diagnostic/
+
+# Downloaded taskbar helper is bundled in releases, rebuilt by GitHub Actions
+assets/taskbar/*.exe

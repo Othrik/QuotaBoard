@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "id": "com.othrik.quotaboard",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "minHostVersion": "0.5.4",
   "displayName": "QuotaBoard",
   "description": "任务栏内部显示本机 QuotaBoard 额度，每5秒轮换AI，悬停查看全部额度。",

@@ -430,7 +430,8 @@ class FloatingWindow(QWidget):
         super().__init__()
         self.config = config
         self.scheduler = scheduler
-        self._dock_edge = "taskbar" if config._data.get("taskbar_mode", False) else None
+        self._dock_edge = None
+        self._native_mode_previous = bool(config._data.get("taskbar_mode", False))
         self._dock_rows = []
         self.expanded = True
         self._drag_pos: Optional[QPoint] = None
@@ -538,10 +539,10 @@ class FloatingWindow(QWidget):
         self.render()
 
     def render(self) -> None:
-        if self.config._data.get("taskbar_mode", False):
-            self._dock_edge = "taskbar"
-        elif self._dock_edge == "taskbar":
-            self._dock_edge = None
+        native_mode = bool(self.config._data.get("taskbar_mode", False))
+        if native_mode != self._native_mode_previous:
+            self._native_mode_previous = native_mode
+            self.hide() if native_mode else self.show()
         # 清空旧行
         while self.body.count():
             item = self.body.takeAt(0)
@@ -551,6 +552,8 @@ class FloatingWindow(QWidget):
 
         rows: list[QuotaResult] = []
         for key in self.config.platform_order:
+            if not self.config.is_enabled(key):
+                continue
             r = self._results.get(key)
             if r is not None:
                 rows.append(r)
@@ -564,6 +567,8 @@ class FloatingWindow(QWidget):
 
         from ..taskbar_snapshot import export_snapshot
         export_snapshot(self.config, rows)
+        if hasattr(self, "native_taskbar"):
+            self.native_taskbar.set_rows(rows)
 
         if not rows:
             tip = QLabel("尚未配置平台：右键 → 设置")
@@ -709,10 +714,10 @@ class FloatingWindow(QWidget):
     def set_taskbar_mode(self, enabled):
         self.config._data["taskbar_mode"] = bool(enabled)
         self.config.save()
-        self._dock_edge = "taskbar" if enabled else None
+        self._dock_edge = None
         self.expanded = True
         self.render()
-        self.show()
+        self.hide() if enabled else self.show()
 
     # ---------- 折叠/展开 ----------
     def toggle(self) -> None:
@@ -799,9 +804,9 @@ class FloatingWindow(QWidget):
     def contextMenuEvent(self, event) -> None:
         self._hover_popup.hide()
         menu = QMenu(self)
-        taskbar = QAction("任务栏左下角常驻", menu)
+        taskbar = QAction("任务栏常驻额度", menu)
         taskbar.setCheckable(True)
-        taskbar.setChecked(self._dock_edge == "taskbar")
+        taskbar.setChecked(bool(self.config._data.get("taskbar_mode", False)))
         taskbar.toggled.connect(self.set_taskbar_mode)
         menu.addAction(taskbar)
         act_refresh = QAction("立即刷新", self)

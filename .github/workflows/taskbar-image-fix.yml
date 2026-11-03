@@ -1,0 +1,48 @@
+name: Build taskbar image fix
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix/taskbar-image-stream]
+    paths: ['tools/patch_taskbar_images.py', 'tools/patch_taskbar_managed.py', '.github/workflows/taskbar-image-fix.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch pinned MIT-licensed host source
+        shell: pwsh
+        run: |
+          git clone https://github.com/pfcdev/TaskbarWidgets.git upstream
+          git -C upstream checkout c49721cc1cfcdd53d6ad42226410148153c38055
+          python tools/patch_taskbar_images.py upstream
+          python tools/patch_taskbar_managed.py upstream
+      - name: Build native hook
+        shell: pwsh
+        run: |
+          cmake -S upstream/src/native -B native-build -A x64 -DBUILD_TESTING=ON
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build native-build --config Release --target TaskbarWidgetsHook TaskbarWidgetsNativeTests --parallel
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ctest --test-dir native-build -C Release --output-on-failure
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force upstream/src/loader/Resources | Out-Null
+          Copy-Item native-build/Release/TaskbarWidgets.Hook.dll upstream/src/loader/Resources/
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build loader with repaired embedded hook
+        shell: pwsh
+        run: |
+          dotnet publish upstream/src/loader/TaskbarWidgets.csproj -c Release -r win-x64 --self-contained true -o repaired
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item native-build/Release/TaskbarWidgets.Hook.dll repaired/
+          Copy-Item upstream/LICENSE repaired/TaskbarWidgets-LICENSE.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TaskbarWidgets-image-stream-fix
+          path: |
+            repaired/QuotaBoard.TaskbarHost.exe
+            repaired/TaskbarWidgets.Hook.dll
+            repaired/TaskbarWidgets-LICENSE.txt
