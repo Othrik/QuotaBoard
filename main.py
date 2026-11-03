@@ -79,6 +79,7 @@ def main() -> int:
         dashboard.present()
 
     dashboard.taskbar_selection_changed.connect(window.native_taskbar.tick)
+    dashboard.floating_selection_changed.connect(window.render)
     window.native_taskbar.details_requested.connect(lambda _platform: dashboard.present())
     window.native_taskbar.settings_requested.connect(open_settings)
 

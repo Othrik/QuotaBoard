@@ -17,7 +17,7 @@ item=d.order_list.takeItem(i);d.order_list.insertItem(0,item);d._save()
 assert c.platform_order[0]=='gemini'
 w=FloatingWindow(c,Scheduler(c));w.on_results({k:QuotaResult(platform=k,label=PLATFORM_META[k]['label'],display='OK') for k in ['codex','gemini','doubao']})
 app.processEvents()
-assert [w.body.itemAt(i).widget().findChildren(QLabel)[1].text() for i in range(3)]==['Gemini','豆包','ChatGPT']
+assert [w.body.itemAt(i).widget().findChild(QLabel,'platformName').text() for i in range(3)]==['Gemini','豆包','ChatGPT']
 w._dock_edge='top';w.update_size()
 assert [w.dock_layout.itemAt(i).widget().property("quotaHover").split('<b>')[1].split('</b>')[0] for i in range(3)]==['Gemini','豆包','ChatGPT']
 print('Order normalization, save, board and dock order passed')

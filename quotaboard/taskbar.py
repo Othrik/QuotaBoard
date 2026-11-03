@@ -9,6 +9,10 @@ from . import __version__
 
 WIDGET_ID='com.othrik.quotaboard'
 
+def taskbar_label(result):
+    plan = ' '.join(str(result.subscription_plan or '').split())
+    return result.label + (' · ' + plan[:24] if plan else '')
+
 def rotation_candidates(rows, platforms=None):
     platforms = platforms or {}
     return [row for row in rows if row.ok and
@@ -63,7 +67,7 @@ class TaskbarController(QObject):
                 write_json(self.data/'Runtime/WidgetCatalog.json',catalog)
                 self._last_catalog=catalog
             write_json(self.data/'config.json',dict(configVersion=3,layout=dict(mode='row'),widgets=[dict(id=WIDGET_ID,widgetId=WIDGET_ID,instanceId=WIDGET_ID,enabled=bool(playable),order=0,position=self.config._data.get("taskbar_position",dict(anchorPercent=0,offsetPx=0)),settings={})],rotation=dict(intervalSeconds=5,widgetIds=[WIDGET_ID],instanceIds=[WIDGET_ID])))
-            content=dict(platform=row.platform,label=row.label,icon=_resource_path('assets/logo/'+PLATFORM_LOGO.get(row.platform,'openai.png')))
+            content=dict(platform=row.platform,label=taskbar_label(row),icon=_resource_path('assets/logo/'+PLATFORM_LOGO.get(row.platform,'openai.png')))
             content.update({f'line{i}':details[i] if i<len(details) else '' for i in range(11)})
             if content != self._last_content:
                 self.sequence+=1

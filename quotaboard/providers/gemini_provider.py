@@ -466,6 +466,8 @@ class GeminiProvider(Provider):
                 available=None, used=None, total=None, unit="",
                 percent=min(m["percent"] for m in metrics),
                 ok=True, sub_note=sub_note, metrics=metrics,
+                subscription_note='当前额度接口未提供订阅到期时间，请在 Google One 订阅管理中查看。',
+                subscription_plan=TIER_LABEL.get(tier, '').title(),
             )
         except (TypeError, ValueError) as e:
             return self.err(f"用量数据解析失败：{e}")

@@ -255,6 +255,7 @@ class _Row(QFrame):
         left.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         style = typography(typography_options)
         name = QLabel(result.label)
+        name.setObjectName('platformName')
         name.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['name_size']+2}px;font-weight:{style['weight']};color:{TEXT_MAIN};")
         sub = result.updated_at.rsplit(" ", 1)[-1]
         if result.error:
@@ -649,8 +650,11 @@ class FloatingWindow(QWidget):
         if hasattr(self, "native_taskbar"):
             self.native_taskbar.set_rows(rows)
 
+        # Query/overview and taskbar rows are independent of floating visibility.
+        rows = [r for r in rows if self.config.platform_cfg(r.platform).get('floating_enabled', True)]
+
         if not rows:
-            tip = QLabel("尚未配置平台：右键 → 设置")
+            tip = QLabel("暂无悬浮窗展示平台：右键打开总览调整")
             tip.setStyleSheet(f"font-size: 13px; color: {TEXT_SUB}; padding: 10px 14px;")
             self.body.addWidget(tip)
         else:

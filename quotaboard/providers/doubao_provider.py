@@ -369,18 +369,27 @@ class DoubaoProvider(Provider):
             if reset:
                 note_parts.append(f"{w['label']}重置 {reset}")
         sub = payload.get("current_subscription") or {}
+        subscription_expires_at = ''
+        subscription_plan = ''
         if isinstance(sub, dict):
+            product = sub.get('display') or {}
+            if isinstance(product, dict):
+                subscription_plan = str(product.get('short_name') or product.get('product_name') or '').strip()
             end_ts = _num(sub.get("end_time"))
             if end_ts and end_ts > 0:
-                import datetime
-                dt = datetime.datetime.fromtimestamp(end_ts / 1000)
-                note_parts.append(f"{dt.year}-{dt.month:02d}-{dt.day:02d}到期")
+                from ..subscription import subscription_date
+                subscription_expires_at = subscription_date(end_ts)
+                if subscription_expires_at:
+                    note_parts.append(f"{subscription_expires_at[:10]}到期")
 
         return QuotaResult(
             platform=self.key, label=self.label, display=display,
             available=None, used=None, total=None, unit="",
             percent=percent, ok=True,
             sub_note=" · ".join(note_parts), metrics=metrics,
+            subscription_expires_at=subscription_expires_at,
+            subscription_plan=subscription_plan,
+            subscription_source='订阅接口' if subscription_expires_at else '',
         )
 
     def debug_fetch(self) -> tuple[bool, str, object]:

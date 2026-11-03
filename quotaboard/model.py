@@ -23,6 +23,10 @@ class QuotaResult:
     sub_note: str = ""       # 副行补充信息（如重置时间、多窗口详情）
     updated_at: str = ""     # 更新时间（ISO 字符串）
     metrics: Optional[list] = None  # 多窗口环形图数据：[{"label","percent","note"}...]
+    subscription_expires_at: str = ''
+    subscription_plan: str = ''
+    subscription_source: str = ''
+    subscription_note: str = ''
 
     def __post_init__(self) -> None:
         if not self.updated_at:

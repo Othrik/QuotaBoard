@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QFra
     QGridLayout, QHBoxLayout, QLabel, QLineEdit, QProgressBar, QPushButton,
     QScrollArea, QVBoxLayout, QWidget, QMessageBox)
 from ..model import PLATFORM_META, QuotaResult
+from .. import __version__
 from .floating_window import _platform_logo, _pct_color, make_app_icon
 from .settings_dialog import SettingsDialog
 
@@ -54,6 +55,7 @@ def needs_attention(result):
 class QuotaCard(QFrame):
     configure = Signal(str)
     taskbar_toggled = Signal(str, bool)
+    floating_toggled = Signal(str, bool)
 
     def __init__(self, key, parent=None):
         super().__init__(parent)
@@ -101,6 +103,9 @@ class QuotaCard(QFrame):
         self.note.setWordWrap(True)
         self.note.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layout.addWidget(self.note)
+        self.subscription = label('', 'muted')
+        self.subscription.setWordWrap(True)
+        layout.addWidget(self.subscription)
         layout.addStretch()
         footer = QHBoxLayout()
         self.timestamp = label('', 'muted')
@@ -112,6 +117,10 @@ class QuotaCard(QFrame):
         self.taskbar_check.setToolTip('取消勾选后，此平台仍在总览显示并自动刷新，只从任务栏轮播中移除。')
         self.taskbar_check.toggled.connect(lambda checked: self.taskbar_toggled.emit(key, checked))
         actions.addWidget(self.taskbar_check)
+        self.floating_check = QCheckBox('悬浮窗', self)
+        self.floating_check.setToolTip('仅控制悬浮窗和桌面吸附条，不影响总览、后台刷新或任务栏轮播。')
+        self.floating_check.toggled.connect(lambda checked: self.floating_toggled.emit(key, checked))
+        actions.addWidget(self.floating_check)
         actions.addStretch()
         self.config_button = QPushButton('配置')
         self.config_button.setStyleSheet('padding:3px 9px;font-size:11px;')
@@ -119,11 +128,15 @@ class QuotaCard(QFrame):
         actions.addWidget(self.config_button)
         layout.addLayout(actions)
 
-    def update_result(self, result, enabled, taskbar_enabled=True):
+    def update_result(self, result, enabled, taskbar_enabled=True, floating_enabled=True):
         self.taskbar_check.blockSignals(True)
         self.taskbar_check.setChecked(taskbar_enabled)
         self.taskbar_check.setEnabled(enabled)
         self.taskbar_check.blockSignals(False)
+        self.floating_check.blockSignals(True)
+        self.floating_check.setChecked(floating_enabled)
+        self.floating_check.setEnabled(enabled)
+        self.floating_check.blockSignals(False)
         success = enabled and result is not None and result.ok
         self.status.setText('未启用' if not enabled else '等待刷新' if result is None else '已更新' if success else '请求失败')
         self.status.setStyleSheet('font-size:11px;color:' + ('#18966C' if success else '#D85E64' if enabled and result else '#8B98AA') + ';')
@@ -164,12 +177,29 @@ class QuotaCard(QFrame):
             note = ' · '.join(dict.fromkeys(parts))
         self.note.setText(note)
         self.note.setVisible(bool(note))
+        show_subscription = enabled and result is not None and self.key in ('codex', 'gemini', 'doubao')
+        self.subscription.setVisible(show_subscription)
+        if show_subscription:
+            expires = result.subscription_expires_at
+            # Keep existing Doubao cache readable until the next successful query.
+            if not expires and self.key == 'doubao':
+                import re
+                match = re.search(r'(\d{4}-\d{2}-\d{2})到期', result.sub_note)
+                expires = match.group(1) if match else ''
+            source = f' · {result.subscription_source}' if result.subscription_source else ''
+            plan = f'{result.subscription_plan} · ' if result.subscription_plan else ''
+            self.subscription.setText(plan + (f'订阅有效期至 {expires}{source}' if expires else '订阅到期：暂未获取'))
+            self.subscription.setToolTip(result.subscription_note or '服务未返回订阅有效期。')
+            if expires and result.subscription_expires_at:
+                self.note.setText(' · '.join(part.strip() for part in note.split('·')
+                                             if not part.strip().endswith('到期')))
         self.timestamp.setText('刷新于 ' + result.updated_at if enabled and result else '尚无刷新记录')
 
 
 class Dashboard(QDialog):
     settings_saved = Signal()
     taskbar_selection_changed = Signal()
+    floating_selection_changed = Signal()
 
     def __init__(self, config, scheduler):
         super().__init__()
@@ -188,7 +218,7 @@ class Dashboard(QDialog):
         outer.setSpacing(18)
         header = QHBoxLayout()
         titles = QVBoxLayout()
-        titles.addWidget(label('QUOTABOARD / OVERVIEW', 'eyebrow'))
+        titles.addWidget(label(f'QUOTABOARD / OVERVIEW     v{__version__}', 'eyebrow'))
         titles.addWidget(label('你的 AI 额度，一目了然', 'hero'))
         titles.addWidget(label('会员额度、积分与 API 余额，集中查看。', 'muted'))
         header.addLayout(titles)
@@ -240,6 +270,7 @@ class Dashboard(QDialog):
             card = QuotaCard(key, body)
             card.configure.connect(self.open_preferences)
             card.taskbar_toggled.connect(self.set_taskbar_enabled)
+            card.floating_toggled.connect(self.set_floating_enabled)
             self.cards[key] = card
         scroll.setWidget(body)
         outer.addWidget(scroll, 1)
@@ -271,7 +302,7 @@ class Dashboard(QDialog):
         self.summary.setText(f'{len(enabled)} 个已启用     /     {successful} 个查询成功     /     {attention} 个需要关注')
         self.interval.setText(f'每 {self.config.refresh_interval_minutes} 分钟自动刷新')
         for key, card in self.cards.items():
-            card.update_result(self.results.get(key), self.config.is_enabled(key), self.config.is_taskbar_enabled(key))
+            card.update_result(self.results.get(key), self.config.is_enabled(key), self.config.is_taskbar_enabled(key), self.config.is_floating_enabled(key))
         self.apply_filter()
         self.refresh_button.setEnabled(not self.scheduler.running)
         self.refresh_button.setText('正在刷新…' if self.scheduler.running else '刷新全部')
@@ -345,6 +376,18 @@ class Dashboard(QDialog):
     def _settings_saved(self):
         self.reload_config()
         self.settings_saved.emit()
+
+    def set_floating_enabled(self, key, enabled):
+        previous = self.config.is_floating_enabled(key)
+        self.config.set_floating_enabled(key, enabled)
+        try:
+            self.config.save()
+        except Exception as error:
+            self.config.set_floating_enabled(key, previous)
+            self.update_cards()
+            QMessageBox.warning(self, '保存失败', str(error))
+            return
+        self.floating_selection_changed.emit()
 
     def present(self):
         self.reload_config()

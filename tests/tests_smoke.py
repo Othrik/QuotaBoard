@@ -276,6 +276,8 @@ def test_doubao_provider() -> None:
     assert re.search(r"5h重置 \d{2}:\d{2}", result.sub_note), result.sub_note
     assert re.search(r"周重置 \d{2}-\d{2} \d{2}:\d{2}", result.sub_note), result.sub_note
     assert "到期" in result.sub_note
+    assert result.subscription_plan == '标准套餐'
+    assert result.subscription_expires_at and result.subscription_source == '订阅接口'
     print(f"[OK] 豆包订阅解析正确（{result.display}，percent={result.percent}，"
           f"metrics={[m['label'] for m in result.metrics]}，note={result.sub_note}）")
 

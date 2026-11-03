@@ -174,7 +174,14 @@ class CodexProvider(Provider):
         finally:
             self._stop(proc)
 
-        return self._parse(response)
+        result = self._parse(response)
+        if result.ok:
+            from ..subscription import read_codex_subscription_expiry
+            result.subscription_expires_at = read_codex_subscription_expiry()
+            result.subscription_source = '本机登录态' if result.subscription_expires_at else ''
+            result.subscription_note = ('登录时记录，续费后可能需要重新登录更新。'
+                                        if result.subscription_expires_at else '当前登录态未提供订阅到期时间。')
+        return result
 
     # ---------- 底层 ----------
     @staticmethod
@@ -282,6 +289,7 @@ class CodexProvider(Provider):
             platform=self.key, label=self.label, display=display,
             available=None, used=None, total=None, unit="",
             percent=percent, ok=True, sub_note=sub_note, metrics=metrics,
+            subscription_plan={'plus':'Plus','pro':'Pro','team':'Team','business':'Business','enterprise':'Enterprise','edu':'Edu','free':'Free','go':'Go'}.get(str(rate_limits.get('planType','')).lower(), ''),
         )
 
 

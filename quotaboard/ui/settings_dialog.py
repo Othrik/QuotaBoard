@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt,QSize,QObject,Signal,QRunnable,QThreadPool
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QApplication,QCheckBox,QComboBox,QDialog,QFormLayout,QFrame,QGroupBox,QHBoxLayout,QLabel,QLineEdit,QMessageBox,QPushButton,QAbstractItemView,QListWidget,QListWidgetItem,QScrollArea,QSpinBox,QStackedWidget,QVBoxLayout,QWidget)
 from ..config import Config
+from .. import __version__
 from ..model import PLATFORM_META
 from ..providers import PROVIDERS
 from ..typography import typography,FAMILIES,DEFAULT_PRESET
@@ -88,12 +89,13 @@ class SettingsDialog(QDialog):
         self.pages.addWidget(scroll);return body,lay
     def _build_ui(self):
         outer=QVBoxLayout(self);outer.setContentsMargins(18,18,18,14);outer.setSpacing(16)
-        top=QHBoxLayout();title=QLabel('QuotaBoard');title.setStyleSheet('font-size:21px;font-weight:600;');top.addWidget(title);top.addStretch();top.addWidget(muted('偏好设置'));outer.addLayout(top)
+        top=QHBoxLayout();title=QLabel('QuotaBoard');title.setStyleSheet('font-size:21px;font-weight:600;');top.addWidget(title);top.addStretch();top.addWidget(muted(f'偏好设置 · v{__version__}'));outer.addLayout(top)
         content=QHBoxLayout();content.setSpacing(18)
         self.navigation=QListWidget();self.navigation.setObjectName('navigation');self.navigation.setFixedWidth(186);self.navigation.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff);self.navigation.setTextElideMode(Qt.ElideRight);self.navigation.setIconSize(QSize(18,18));content.addWidget(self.navigation)
         right=QVBoxLayout();right.setSpacing(12);self.page_title=QLabel();self.page_title.setObjectName('pageTitle');right.addWidget(self.page_title)
         self.pages=QStackedWidget();right.addWidget(self.pages,1);content.addLayout(right,1);outer.addLayout(content,1)
         self.navigation.addItem('通用与显示');self._general_page()
+        order_item=QListWidgetItem('AI 显示顺序');order_item.setData(Qt.UserRole,'__order__');self.navigation.addItem(order_item);self._order_page()
         for key,meta in PLATFORM_META.items():
             item=QListWidgetItem(meta['label']);item.setData(Qt.UserRole,key);item.setIcon(QIcon(_resource_path('assets/logo/'+PLATFORM_LOGO.get(key,'openai.png'))));self.navigation.addItem(item);self.nav_items[key]=item;self._platform_page(key,meta)
         self.navigation.currentRowChanged.connect(self._select_page);self.navigation.setCurrentRow(0)
@@ -124,12 +126,30 @@ class SettingsDialog(QDialog):
         for control in [self.name_size,self.quota_size]:control.valueChanged.connect(self._preview_typography)
         lay.addWidget(box)
         box,v=card('自动刷新');row=QHBoxLayout();row.addWidget(QLabel('刷新间隔'));self.interval_spin=QSpinBox();self.interval_spin.setRange(1,1440);self.interval_spin.setSuffix(' 分钟');self.interval_spin.setFixedWidth(140);row.addWidget(self.interval_spin);row.addStretch();v.addLayout(row);lay.addWidget(box)
-        box,v=card('AI 显示顺序');v.addWidget(muted('拖动调整顺序，或选中平台后使用上移、下移。展示板和任务栏共用此顺序。'))
-        self.order_list=QListWidget();self.order_list.setObjectName('order');self.order_list.setDragDropMode(QAbstractItemView.InternalMove);self.order_list.setDefaultDropAction(Qt.MoveAction);self.order_list.setFixedHeight(156);self.order_list.setIconSize(QSize(18,18));v.addWidget(self.order_list)
-        row=QHBoxLayout()
-        for text,delta in [('上移',-1),('下移',1)]:
-            button=QPushButton(text);button.clicked.connect(lambda _,d=delta:self._move_order(d));row.addWidget(button)
-        row.addStretch();v.addLayout(row);lay.addWidget(box);lay.addStretch()
+        lay.addStretch()
+    def _order_page(self):
+        _,lay=self._scroll_page()
+        box,v=card('调整显示顺序')
+        v.addWidget(muted('按住平台行拖动即可排序，也可选中后使用下方按钮。已启用的平台按此顺序展示，未启用平台在总览中置后。'))
+        self.order_list=QListWidget();self.order_list.setObjectName('order')
+        self.order_list.setDragDropMode(QAbstractItemView.InternalMove)
+        self.order_list.setDefaultDropAction(Qt.MoveAction)
+        self.order_list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.order_list.setMinimumHeight(320);self.order_list.setIconSize(QSize(22,22))
+        self.order_list.setSpacing(3)
+        v.addWidget(self.order_list)
+        self.order_position=muted('选择平台以调整位置');v.addWidget(self.order_position)
+        row=QHBoxLayout();self.order_buttons={}
+        for text,action,shortcut in [('置顶',lambda:self._move_order_to(0),None),('上移',lambda:self._move_order(-1),'Alt+Up'),('下移',lambda:self._move_order(1),'Alt+Down'),('置底',lambda:self._move_order_to(self.order_list.count()-1),None)]:
+            button=QPushButton(text);button.clicked.connect(action)
+            if shortcut:button.setShortcut(shortcut);button.setToolTip(shortcut)
+            self.order_buttons[text]=button;row.addWidget(button)
+        row.addStretch();v.addLayout(row)
+        self.order_reset=QPushButton('恢复默认顺序');self.order_reset.clicked.connect(lambda:self._populate_order(list(PLATFORM_META)));v.addWidget(self.order_reset)
+        v.addWidget(muted('顺序同时用于总览、悬浮窗和任务栏轮播。调整后点击“保存并刷新”生效。'))
+        self.order_list.currentRowChanged.connect(self._update_order_actions)
+        self.order_list.model().rowsMoved.connect(self._refresh_order_labels)
+        lay.addWidget(box,1)
     def _platform_page(self,key,meta):
         body,lay=self._scroll_page();self.platform_boxes[key]=body
         box,v=card('平台连接');enabled=QCheckBox('显示此平台');enabled.toggled.connect(lambda checked,k=key:self._nav_state(k,checked));self.enable_checks[key]=enabled;v.addWidget(enabled);v.addWidget(muted(GUIDES.get(key,'填写平台凭据后测试连接。')))
@@ -146,13 +166,39 @@ class SettingsDialog(QDialog):
         status=QLabel('测试仅检查连接，不会保存本页更改。');status.setWordWrap(True);status.setObjectName('muted');v.addWidget(status);self.test_buttons[key]=button;self.test_status[key]=status;lay.addWidget(box);lay.addStretch()
     def _select_page(self,index):
         if index<0:return
-        self.pages.setCurrentIndex(index);item=self.navigation.item(index);self.page_title.setText('通用与显示' if index==0 else PLATFORM_META[item.data(Qt.UserRole)]['label'])
+        self.pages.setCurrentIndex(index);item=self.navigation.item(index);self.page_title.setText('通用与显示' if index==0 else 'AI 显示顺序' if item.data(Qt.UserRole)=='__order__' else PLATFORM_META[item.data(Qt.UserRole)]['label'])
     def _nav_state(self,key,checked):
         self.nav_items[key].setText(PLATFORM_META[key]['label']+(' · 已启用' if checked else ''))
+        self._refresh_order_labels()
     def _reset_position(self):self._anchor_percent=0;self.position_spin.setValue(0)
+    def _populate_order(self,keys):
+        self.order_list.clear()
+        for key in keys:
+            item=QListWidgetItem();item.setData(Qt.UserRole,key)
+            item.setIcon(QIcon(_resource_path('assets/logo/'+PLATFORM_LOGO.get(key,'openai.png'))))
+            item.setSizeHint(QSize(0,38));self.order_list.addItem(item)
+        self.order_list.setCurrentRow(0);self._refresh_order_labels()
+    def _refresh_order_labels(self,*_):
+        for i in range(self.order_list.count()):
+            item=self.order_list.item(i);key=item.data(Qt.UserRole)
+            state='已启用' if self.enable_checks[key].isChecked() else '未启用'
+            item.setText(f"{i+1:02d}   {PLATFORM_META[key]['label']}   ·   {state}")
+        self._update_order_actions()
+    def _update_order_actions(self,*_):
+        row=self.order_list.currentRow();count=self.order_list.count()
+        for name in ('置顶','上移'):self.order_buttons[name].setEnabled(row>0)
+        for name in ('下移','置底'):self.order_buttons[name].setEnabled(0<=row<count-1)
+        self.order_position.setText(f'第 {row+1} / {count} 位 · 保存后生效' if row>=0 else '选择平台以调整位置')
+        keys=[self.order_list.item(i).data(Qt.UserRole) for i in range(count)]
+        self.order_reset.setEnabled(keys!=list(PLATFORM_META))
+    def _move_order_to(self,new):
+        old=self.order_list.currentRow()
+        if old>=0 and 0<=new<self.order_list.count() and old!=new:
+            item=self.order_list.takeItem(old);self.order_list.insertItem(new,item)
+            self.order_list.setCurrentRow(new);self.order_list.scrollToItem(item)
+            self._refresh_order_labels()
     def _move_order(self,delta):
-        old=self.order_list.currentRow();new=old+delta
-        if old>=0 and 0<=new<self.order_list.count():self.order_list.insertItem(new,self.order_list.takeItem(old));self.order_list.setCurrentRow(new)
+        self._move_order_to(self.order_list.currentRow()+delta)
     def _typography_value(self):
         return typography(dict(family=self.font_family.currentData(),weight=self.font_weight.currentData(),name_size=self.name_size.value(),
                                quota_family=self.quota_family.currentData(),quota_weight=self.quota_weight.currentData(),quota_size=self.quota_size.value()))
@@ -184,9 +230,7 @@ class SettingsDialog(QDialog):
         self._preview_typography()
         self.interval_spin.setValue(self.config.refresh_interval_minutes);self.taskbar_check.setChecked(bool(self.config._data.get('taskbar_mode',False)))
         position=self.config._data.get('taskbar_position',{});self._anchor_percent=position.get('anchorPercent',0);self.position_spin.setValue(position.get('offsetPx',0))
-        for key in self.config.platform_order:
-            item=QListWidgetItem(PLATFORM_META[key]['label']);item.setData(Qt.UserRole,key);item.setIcon(QIcon(_resource_path('assets/logo/'+PLATFORM_LOGO.get(key,'openai.png'))));self.order_list.addItem(item)
-        self.order_list.setCurrentRow(0)
+        self._populate_order(self.config.platform_order)
     def _test(self,key):
         if key in self._workers:return
         cfg={f:ed.text().strip() or self.config.get_credential(key,f) for f,ed in self.field_inputs[key].items()}

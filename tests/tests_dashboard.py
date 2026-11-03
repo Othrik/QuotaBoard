@@ -20,6 +20,7 @@ config._data['cache'] = {}
 for key in PLATFORM_META:
     config.set_enabled(key, key in ('codex', 'gemini', 'doubao', 'zhipu_member', 'deepseek', 'dmxapi'))
     config.set_taskbar_enabled(key, True)
+    config.set_floating_enabled(key, True)
 scheduler = Scheduler(config)
 dashboard = Dashboard(config, scheduler)
 assert len(dashboard.cards) == len(PLATFORM_META)
@@ -53,6 +54,14 @@ assert changes == [True], 'refresh must not save or toggle selection'
 dashboard.cards['gemini'].taskbar_check.setChecked(True)
 assert 'gemini' in [r.platform for r in rotation_candidates(rows,config._data['platforms'])]
 assert config.is_taskbar_enabled('unknown-new-platform'), 'existing installs default to included'
+floating_changes=[]
+dashboard.floating_selection_changed.connect(lambda:floating_changes.append(True))
+dashboard.cards['gemini'].floating_check.setChecked(False)
+assert config.is_enabled('gemini') and config.is_taskbar_enabled('gemini')
+assert not Config(config.path).is_floating_enabled('gemini')
+scheduler.result_ready.emit('gemini',rows[1])
+assert not dashboard.cards['gemini'].floating_check.isChecked()
+assert dashboard.results['gemini'].ok and floating_changes==[True]
 dashboard.filter.setCurrentIndex(1)
 assert sum(not c.isHidden() for c in dashboard.cards.values()) == 6
 dashboard.search.setText('Gemini')
