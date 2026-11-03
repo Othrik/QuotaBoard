@@ -9,8 +9,10 @@ from . import __version__
 
 WIDGET_ID='com.othrik.quotaboard'
 
-def rotation_candidates(rows):
-    return [row for row in rows if row.ok]
+def rotation_candidates(rows, platforms=None):
+    platforms = platforms or {}
+    return [row for row in rows if row.ok and
+            platforms.get(row.platform, {}).get('taskbar_enabled', True)]
 
 def write_json(path,payload):
     path.parent.mkdir(parents=True,exist_ok=True)
@@ -49,7 +51,7 @@ class TaskbarController(QObject):
             self.read_commands()
             if not self.prepared:self.prepare()
             from .ui.floating_window import _dock_quota_text,_resource_path,PLATFORM_LOGO
-            playable=rotation_candidates(self.rows)
+            playable=rotation_candidates(self.rows,self.config._data.get('platforms'))
             row=playable[(int(time.monotonic())//5)%len(playable)] if playable else QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
             layout=make_layout(_dock_quota_text(row),self.config._data.get('display_typography'))
             details=make_details(row)

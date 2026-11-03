@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QFrame,
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QFrame,
     QGridLayout, QHBoxLayout, QLabel, QLineEdit, QProgressBar, QPushButton,
-    QScrollArea, QVBoxLayout, QWidget)
+    QScrollArea, QVBoxLayout, QWidget, QMessageBox)
 from ..model import PLATFORM_META, QuotaResult
 from .floating_window import _platform_logo, _pct_color, make_app_icon
 from .settings_dialog import SettingsDialog
@@ -53,6 +53,7 @@ def needs_attention(result):
 
 class QuotaCard(QFrame):
     configure = Signal(str)
+    taskbar_toggled = Signal(str, bool)
 
     def __init__(self, key, parent=None):
         super().__init__(parent)
@@ -105,13 +106,24 @@ class QuotaCard(QFrame):
         self.timestamp = label('', 'muted')
         footer.addWidget(self.timestamp)
         footer.addStretch()
+        layout.addLayout(footer)
+        actions = QHBoxLayout()
+        self.taskbar_check = QCheckBox('任务栏轮播', self)
+        self.taskbar_check.setToolTip('取消勾选后，此平台仍在总览显示并自动刷新，只从任务栏轮播中移除。')
+        self.taskbar_check.toggled.connect(lambda checked: self.taskbar_toggled.emit(key, checked))
+        actions.addWidget(self.taskbar_check)
+        actions.addStretch()
         self.config_button = QPushButton('配置')
         self.config_button.setStyleSheet('padding:3px 9px;font-size:11px;')
         self.config_button.clicked.connect(lambda: self.configure.emit(key))
-        footer.addWidget(self.config_button)
-        layout.addLayout(footer)
+        actions.addWidget(self.config_button)
+        layout.addLayout(actions)
 
-    def update_result(self, result, enabled):
+    def update_result(self, result, enabled, taskbar_enabled=True):
+        self.taskbar_check.blockSignals(True)
+        self.taskbar_check.setChecked(taskbar_enabled)
+        self.taskbar_check.setEnabled(enabled)
+        self.taskbar_check.blockSignals(False)
         success = enabled and result is not None and result.ok
         self.status.setText('未启用' if not enabled else '等待刷新' if result is None else '已更新' if success else '请求失败')
         self.status.setStyleSheet('font-size:11px;color:' + ('#18966C' if success else '#D85E64' if enabled and result else '#8B98AA') + ';')
@@ -157,6 +169,7 @@ class QuotaCard(QFrame):
 
 class Dashboard(QDialog):
     settings_saved = Signal()
+    taskbar_selection_changed = Signal()
 
     def __init__(self, config, scheduler):
         super().__init__()
@@ -226,6 +239,7 @@ class Dashboard(QDialog):
                 continue
             card = QuotaCard(key, body)
             card.configure.connect(self.open_preferences)
+            card.taskbar_toggled.connect(self.set_taskbar_enabled)
             self.cards[key] = card
         scroll.setWidget(body)
         outer.addWidget(scroll, 1)
@@ -257,7 +271,7 @@ class Dashboard(QDialog):
         self.summary.setText(f'{len(enabled)} 个已启用     /     {successful} 个查询成功     /     {attention} 个需要关注')
         self.interval.setText(f'每 {self.config.refresh_interval_minutes} 分钟自动刷新')
         for key, card in self.cards.items():
-            card.update_result(self.results.get(key), self.config.is_enabled(key))
+            card.update_result(self.results.get(key), self.config.is_enabled(key), self.config.is_taskbar_enabled(key))
         self.apply_filter()
         self.refresh_button.setEnabled(not self.scheduler.running)
         self.refresh_button.setText('正在刷新…' if self.scheduler.running else '刷新全部')
@@ -315,6 +329,18 @@ class Dashboard(QDialog):
         self.preferences.show()
         self.preferences.raise_()
         self.preferences.activateWindow()
+
+    def set_taskbar_enabled(self, key, enabled):
+        previous = self.config.is_taskbar_enabled(key)
+        self.config.set_taskbar_enabled(key, enabled)
+        try:
+            self.config.save()
+        except Exception as error:
+            self.config.set_taskbar_enabled(key, previous)
+            self.update_cards()
+            QMessageBox.warning(self, '保存失败', str(error))
+            return
+        self.taskbar_selection_changed.emit()
 
     def _settings_saved(self):
         self.reload_config()

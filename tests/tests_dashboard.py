@@ -9,6 +9,7 @@ from quotaboard.config import Config
 from quotaboard.model import QuotaResult, PLATFORM_META
 from quotaboard.scheduler import Scheduler
 from quotaboard.ui.dashboard import Dashboard
+from quotaboard.taskbar import rotation_candidates
 
 app = QApplication([])
 for font in ('msyh.ttc', 'msyhbd.ttc', 'segoeui.ttf'):
@@ -18,6 +19,7 @@ config = Config(Path('dist/dashboard-test/config.json'))
 config._data['cache'] = {}
 for key in PLATFORM_META:
     config.set_enabled(key, key in ('codex', 'gemini', 'doubao', 'zhipu_member', 'deepseek', 'dmxapi'))
+    config.set_taskbar_enabled(key, True)
 scheduler = Scheduler(config)
 dashboard = Dashboard(config, scheduler)
 assert len(dashboard.cards) == len(PLATFORM_META)
@@ -36,6 +38,21 @@ assert dashboard.cards['gemini'].metric_rows[1][2].text() == '99%'
 assert dashboard.cards['gemini'].note.text().count('重置 20:30') == 1
 assert dashboard.cards['dmxapi'].status.text() == '请求失败'
 assert dashboard.cards['openai'].status.text() == '未启用'
+changes=[]
+dashboard.taskbar_selection_changed.connect(lambda: changes.append(True))
+dashboard.cards['gemini'].taskbar_check.setChecked(False)
+assert config.is_enabled('gemini') and not config.is_taskbar_enabled('gemini')
+assert Config(config.path).is_taskbar_enabled('gemini') is False
+assert 'gemini' not in [r.platform for r in rotation_candidates(rows,config._data['platforms'])]
+assert 'doubao' in [r.platform for r in rotation_candidates(rows,config._data['platforms'])]
+assert 'dmxapi' not in [r.platform for r in rotation_candidates(rows,config._data['platforms'])]
+scheduler.result_ready.emit('gemini',rows[1])
+assert not dashboard.cards['gemini'].taskbar_check.isChecked()
+assert dashboard.cards['gemini'].metric_rows[1][2].text() == '99%'
+assert changes == [True], 'refresh must not save or toggle selection'
+dashboard.cards['gemini'].taskbar_check.setChecked(True)
+assert 'gemini' in [r.platform for r in rotation_candidates(rows,config._data['platforms'])]
+assert config.is_taskbar_enabled('unknown-new-platform'), 'existing installs default to included'
 dashboard.filter.setCurrentIndex(1)
 assert sum(not c.isHidden() for c in dashboard.cards.values()) == 6
 dashboard.search.setText('Gemini')

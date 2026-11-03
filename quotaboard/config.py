@@ -154,6 +154,13 @@ class Config:
     def is_enabled(self, key: str) -> bool:
         return bool(self.platform_cfg(key).get("enabled", False))
 
+    def is_taskbar_enabled(self, key: str) -> bool:
+        """Independent from querying/overview visibility; preserve old defaults."""
+        return bool(self.platform_cfg(key).get("taskbar_enabled", True))
+
+    def set_taskbar_enabled(self, key: str, enabled: bool) -> None:
+        self.platform_cfg(key)["taskbar_enabled"] = bool(enabled)
+
     # ---- 手动额度 ----
     @property
     def manual_entries(self) -> dict[str, dict[str, Any]]:

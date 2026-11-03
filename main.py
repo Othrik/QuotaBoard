@@ -78,18 +78,8 @@ def main() -> int:
     def open_settings() -> None:
         dashboard.present()
 
-    def open_quota_details(platform: str) -> None:
-        result = next((r for r in window.native_taskbar.rows if r.platform == platform), None)
-        if result is None:
-            return
-        from quotaboard.ui.taskbar_details import TaskbarDetailsPopup
-        popup = getattr(window, "_taskbar_details", None)
-        if popup is None:
-            popup = TaskbarDetailsPopup(window)
-            window._taskbar_details = popup
-        popup.present(result, typography_options=config._data.get("display_typography"))
-
-    window.native_taskbar.details_requested.connect(open_quota_details)
+    dashboard.taskbar_selection_changed.connect(window.native_taskbar.tick)
+    window.native_taskbar.details_requested.connect(lambda _platform: dashboard.present())
     window.native_taskbar.settings_requested.connect(open_settings)
 
     # 悬浮窗右键菜单信号

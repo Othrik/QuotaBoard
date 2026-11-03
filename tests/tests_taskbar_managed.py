@@ -68,6 +68,13 @@ if True:
  failed=QuotaResult(platform='gemini',label='Gemini',display='请求失败',ok=False)
  controller.set_rows([failed]);assert not json.loads((controller.data/'config.json').read_text('utf8'))['widgets'][0]['enabled']
  controller.set_rows([case]);assert json.loads((controller.data/'config.json').read_text('utf8'))['widgets'][0]['enabled']
+ controller.config._data['platforms']={'gemini':{'taskbar_enabled':False}}
+ controller.tick()
+ assert controller.rows==[case], 'excluded platforms must remain available to the overview'
+ assert not json.loads((controller.data/'config.json').read_text('utf8'))['widgets'][0]['enabled']
+ controller.config._data['platforms']['gemini']['taskbar_enabled']=True
+ controller.tick()
+ assert json.loads((controller.data/'config.json').read_text('utf8'))['widgets'][0]['enabled']
  controller.config._data['taskbar_mode']=False;controller.tick();assert not json.loads((controller.data/'managed-control.json').read_text('utf8'))['enabled']
  assert controller.process.state()==QProcess.NotRunning
 print('Integrated layout parity, transparency, helper single-start, data boundary and shutdown passed')
