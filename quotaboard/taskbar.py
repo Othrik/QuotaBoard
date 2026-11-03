@@ -13,6 +13,13 @@ def taskbar_label(result):
     plan = ' '.join(str(result.subscription_plan or '').split())
     return result.label + (' · ' + plan[:24] if plan else '')
 
+def taskbar_quota_text(result,reset_mode='absolute'):
+    from .ui.floating_window import _dock_quota_text
+    text=_dock_quota_text(result,reset_mode=reset_mode)
+    if result.ok and result.platform in ('openai','dmxapi','zhipu','kimi','deepseek') and not result.display.startswith('余额'):
+        return '余额 '+text
+    return text
+
 def rotation_candidates(rows, platforms=None):
     platforms = platforms or {}
     return [row for row in rows if row.ok and
@@ -57,7 +64,7 @@ class TaskbarController(QObject):
             from .ui.floating_window import _dock_quota_text,_resource_path,PLATFORM_LOGO
             playable=rotation_candidates(self.rows,self.config._data.get('platforms'))
             row=playable[(int(time.monotonic())//5)%len(playable)] if playable else QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
-            layout=make_layout(_dock_quota_text(row,reset_mode=self.config._data.get('reset_display','absolute')),self.config._data.get('display_typography'),taskbar_label(row))
+            layout=make_layout(taskbar_quota_text(row,self.config._data.get('reset_display','absolute')),self.config._data.get('display_typography'),taskbar_label(row))
             details=make_details(row)
             entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=layout['width'],height=layout['height'],layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='click',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
             # 目录与状态只在内容变化时落盘：任务栏组件监听这些文件，

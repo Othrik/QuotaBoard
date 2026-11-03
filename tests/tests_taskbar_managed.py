@@ -2,12 +2,18 @@
 from pathlib import Path
 import json,tempfile,time
 from PySide6.QtCore import QCoreApplication,QObject,QProcess
-from quotaboard.taskbar import TaskbarController
+from quotaboard.taskbar import TaskbarController,taskbar_quota_text
 from quotaboard.taskbar_layout import make_layout,make_details,expanded_layout
 from quotaboard.ui.floating_window import _dock_quota_text
 from quotaboard.model import QuotaResult
 
 app=QCoreApplication.instance() or QCoreApplication([])
+balance=QuotaResult('deepseek','DeepSeek','¥18.2402')
+balance_layout=make_layout(taskbar_quota_text(balance))
+balance_parts=balance_layout['children'][0]['children'][1]['children'][1]['children']
+assert ''.join(p.get('text',' ') for p in balance_parts)=='余额 ¥18.2402'
+assert balance_parts[1]['type']=='spacer' and balance_parts[1]['width']>=4
+assert taskbar_quota_text(QuotaResult('zhipu_member','智谱清言','积分 123'))=='积分 123'
 case=QuotaResult(platform='gemini',label='Gemini',display='5h 94% · 周 29%',metrics=[dict(label='5h',percent=94,note='5h重置 03:05'),dict(label='周',percent=29,note='周重置 11-07 20:01')])
 layout=make_layout(_dock_quota_text(case));parts=layout['children'][0]['children'][1]['children'][1]['children']
 assert ''.join(p.get('text',' ') for p in parts)=='5h 94% · 周 29%'
