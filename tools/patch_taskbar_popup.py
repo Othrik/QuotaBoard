@@ -137,3 +137,11 @@ new='''        if (type == L"icon") {
         }'''
 assert s.count(old)==1
 p.write_text(s.replace(old,new),encoding='utf8')
+
+s=p.read_text(encoding='utf8')
+old='            button.Content(compact);'
+assert s.count(old)==1
+s=s.replace(old,'''            button.Width(definition->width);
+            button.Height(definition->height);
+            button.Content(compact);''')
+p.write_text(s,encoding='utf8')
