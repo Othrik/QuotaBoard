@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [fix/taskbar-image-stream]
-    paths: ['tools/patch_taskbar_images.py', '.github/workflows/taskbar-image-fix.yml']
+    paths: ['tools/patch_taskbar_images.py', 'tools/patch_taskbar_managed.py', '.github/workflows/taskbar-image-fix.yml']
 permissions:
   contents: read
 jobs:
@@ -17,6 +17,7 @@ jobs:
           git clone https://github.com/pfcdev/TaskbarWidgets.git upstream
           git -C upstream checkout c49721cc1cfcdd53d6ad42226410148153c38055
           python tools/patch_taskbar_images.py upstream
+          python tools/patch_taskbar_managed.py upstream
       - name: Build native hook
         shell: pwsh
         run: |
@@ -42,6 +43,6 @@ jobs:
         with:
           name: TaskbarWidgets-image-stream-fix
           path: |
-            repaired/TaskbarWidgets.exe
+            repaired/QuotaBoard.TaskbarHost.exe
             repaired/TaskbarWidgets.Hook.dll
             repaired/TaskbarWidgets-LICENSE.txt
