@@ -399,6 +399,7 @@ class _QuotaPopup(QWidget):
         super().__init__(parent, Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self._shown_text = ""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 16, 18, 16)
         self.text = QLabel()
@@ -413,8 +414,10 @@ class _QuotaPopup(QWidget):
         painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
 
     def present(self, text, position):
-        self.text.setText(text)
-        self.adjustSize()
+        if not (self.isVisible() and text == self._shown_text):
+            self._shown_text = text
+            self.text.setText(text)
+            self.adjustSize()
         screen = QGuiApplication.screenAt(position) or QGuiApplication.primaryScreen()
         geo = screen.availableGeometry()
         x = max(geo.left(), min(position.x(), geo.right() - self.width() + 1))
@@ -422,6 +425,8 @@ class _QuotaPopup(QWidget):
         if y + self.height() > geo.bottom():
             y = position.y() - self.height() - 12
         self.move(x, max(geo.top(), y))
+        if self.isVisible():
+            return
         self.show()
         self.raise_()
 
@@ -461,6 +466,19 @@ class FloatingWindow(QWidget):
         self._hover_popup = _QuotaPopup(self)
         self._build_ui()
         self.apply_shadow()
+
+        # 同一轮刷新会逐个平台回调，合并成一次重绘；鼠标停在面板上时延后，
+        # 避免反复销毁/重建行导致悬停提示窗连续弹出又消失
+        self._render_pending = False
+        self._force_render = False
+        self._render_timer = QTimer(self)
+        self._render_timer.setSingleShot(True)
+        self._render_timer.setInterval(0)
+        self._render_timer.timeout.connect(self._flush_render)
+        self._hover_hide_timer = QTimer(self)
+        self._hover_hide_timer.setSingleShot(True)
+        self._hover_hide_timer.setInterval(140)
+        self._hover_hide_timer.timeout.connect(self._hide_hover_popup)
 
         self.scheduler.refreshed.connect(self.on_results)
         self.scheduler.result_ready.connect(self.on_partial_result)
@@ -507,7 +525,7 @@ class FloatingWindow(QWidget):
             button.setFixedSize(34, 26)
             button.setToolTip(tip)
             button.setStyleSheet("QPushButton { border: none; border-radius: 6px; color: #667085; font-size: 11px; } QPushButton:hover { background: #EAF0FC; color: #4169E1; }")
-            button.clicked.connect(signal.emit)
+            button.clicked.connect(self._manual_refresh)
             hlay.addWidget(button)
             self.header_buttons.append(button)
         # Keep the header compact even when the window retains extra height.
@@ -541,18 +559,67 @@ class FloatingWindow(QWidget):
     # ---------- 数据 ----------
     def on_partial_result(self, key, result):
         self._results[key] = result
-        self.render()
+        # 一轮刷新里每个平台都会回调一次，合并重绘避免行被反复销毁重建
+        self.request_render()
 
     def on_results(self, results: dict[str, QuotaResult]) -> None:
         self._results = results
         self._last_refresh = datetime.now().strftime("%H:%M")
-        self.render()
+        # 整轮完成也不在指针悬停时重建，避免提示窗随刷新闪一下
+        self.request_render()
 
     def render(self) -> None:
+        """立即重绘：结构变化（切模式、保存设置）时用，不走合并与悬停延后。"""
+        self._sync_mode_visibility()
+        self._render_timer.stop()
+        self._render_pending = False
+        self._force_render = False
+        self._render_now()
+
+    def request_render(self) -> None:
+        """合并重绘：同一事件循环内的多次调用只渲染一次。"""
+        self._sync_mode_visibility()
+        self._render_pending = True
+        if not self._render_timer.isActive():
+            self._render_timer.start()
+
+    def _sync_mode_visibility(self) -> None:
         native_mode = bool(self.config._data.get("taskbar_mode", False))
         if native_mode != self._native_mode_previous:
             self._native_mode_previous = native_mode
             self.hide() if native_mode else self.show()
+
+    def _hover_on_board(self) -> bool:
+        """指针是否停在面板上（离屏渲染没有鼠标语义，一律视为未悬停）。"""
+        if QGuiApplication.platformName() == "offscreen":
+            return False
+        return self.isVisible() and (self.underMouse() or self._hover_popup.isVisible())
+
+    def _flush_render(self) -> None:
+        self._render_timer.stop()
+        if not self._render_pending:
+            self._force_render = False
+            return
+        # 指针停在面板上时重建行会让悬停提示反复弹出/消失，等指针离开再重绘；
+        # 用户自己点了「刷新」则立即重绘，操作立刻有反馈
+        if not self._force_render and self._hover_on_board():
+            return
+        self._render_pending = False
+        self._force_render = False
+        self._render_now()
+
+    def _hide_hover_popup(self) -> None:
+        """延迟隐藏悬停卡片，并补做被推迟的重绘。"""
+        self._hover_popup.hide()
+        if self._render_pending:
+            self._render_timer.start()
+
+    def _manual_refresh(self) -> None:
+        """头部「刷新」：立即拉取，并允许悬停状态下也立刻重绘一次。"""
+        self._force_render = True
+        self.refresh_requested.emit()
+
+    def _render_now(self) -> None:
         # 清空旧行
         while self.body.count():
             item = self.body.takeAt(0)
@@ -801,18 +868,29 @@ class FloatingWindow(QWidget):
         details = watched.property("quotaHover")
         if details:
             if event.type() in (QEvent.Type.Enter, QEvent.Type.ToolTip):
+                self._hover_hide_timer.stop()
                 self._hover_popup.present(details, QCursor.pos())
                 if event.type() == QEvent.Type.ToolTip:
                     return True
             elif event.type() in (QEvent.Type.Leave, QEvent.Type.MouseButtonPress, QEvent.Type.Hide):
-                self._hover_popup.hide()
+                # 依次进入/离开多个子控件时立即隐藏会让卡片闪成多次，短暂延迟即可稳定
+                self._hover_hide_timer.start()
         return super().eventFilter(watched, event)
 
+    def leaveEvent(self, event):
+        super().leaveEvent(event)
+        self._hover_hide_timer.start()
+        # 指针离开后补做悬停期间推迟的重绘
+        if self._render_pending and not self._hover_popup.isVisible():
+            self._render_timer.start()
+
     def hideEvent(self, event):
+        self._hover_hide_timer.stop()
         self._hover_popup.hide()
         super().hideEvent(event)
 
     def contextMenuEvent(self, event) -> None:
+        self._hover_hide_timer.stop()
         self._hover_popup.hide()
         menu = QMenu(self)
         taskbar = QAction("任务栏常驻额度", menu)

@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QApplication,QCheckBox,QComboBox,QDialog,QFormLay
 from ..config import Config
 from ..model import PLATFORM_META
 from ..providers import PROVIDERS
-from ..typography import typography,FAMILIES,WEATHER_PRESET
+from ..typography import typography,FAMILIES,DEFAULT_PRESET
 from .floating_window import _resource_path,PLATFORM_LOGO
 
 FONT_LABELS={'Microsoft YaHei UI':'微软雅黑 UI','Microsoft YaHei':'微软雅黑','DengXian':'等线',
@@ -117,7 +117,7 @@ class SettingsDialog(QDialog):
         row=QHBoxLayout();row.addWidget(QLabel('字体'));row.addWidget(self.font_family,1);row.addSpacing(8);row.addWidget(QLabel('粗细'));row.addWidget(self.font_weight);row.addSpacing(8);row.addWidget(QLabel('字号'));row.addWidget(self.name_size);form.addRow('AI 名称',row)
         row=QHBoxLayout();row.addWidget(QLabel('字体'));row.addWidget(self.quota_family,1);row.addSpacing(8);row.addWidget(QLabel('粗细'));row.addWidget(self.quota_weight);row.addSpacing(8);row.addWidget(QLabel('字号'));row.addWidget(self.quota_size);form.addRow('额度数字',row)
         v.addLayout(form)
-        preset=QPushButton('应用天气小组件风格（Segoe UI Variable Text + Display）');preset.clicked.connect(self._apply_weather_preset);v.addWidget(preset)
+        preset=QPushButton('恢复默认（名称 Text / 额度 Display，均为较粗 12px）');preset.clicked.connect(self._restore_typography_defaults);v.addWidget(preset)
         preview=QHBoxLayout();self.preview_name=QLabel('ChatGPT');self.preview_quota=QLabel('5h 88% · 周 99%');preview.addWidget(self.preview_name);preview.addWidget(self.preview_quota);preview.addStretch();v.addLayout(preview)
         v.addWidget(muted('名称与额度可分别设置字体、粗细与字号；任务栏与展示板共用这套组合。'))
         for control in [self.font_family,self.font_weight,self.quota_family,self.quota_weight]:control.currentIndexChanged.connect(self._preview_typography)
@@ -156,13 +156,13 @@ class SettingsDialog(QDialog):
     def _typography_value(self):
         return typography(dict(family=self.font_family.currentData(),weight=self.font_weight.currentData(),name_size=self.name_size.value(),
                                quota_family=self.quota_family.currentData(),quota_weight=self.quota_weight.currentData(),quota_size=self.quota_size.value()))
-    def _apply_weather_preset(self):
-        self.font_family.setCurrentIndex(max(0,self.font_family.findData(WEATHER_PRESET['family'])))
-        self.font_weight.setCurrentIndex(max(0,self.font_weight.findData(WEATHER_PRESET['weight'])))
-        self.name_size.setValue(WEATHER_PRESET['name_size'])
-        self.quota_family.setCurrentIndex(max(0,self.quota_family.findData(WEATHER_PRESET['quota_family'])))
-        self.quota_weight.setCurrentIndex(max(0,self.quota_weight.findData(WEATHER_PRESET['quota_weight'])))
-        self.quota_size.setValue(WEATHER_PRESET['quota_size'])
+    def _restore_typography_defaults(self):
+        self.font_family.setCurrentIndex(max(0,self.font_family.findData(DEFAULT_PRESET['family'])))
+        self.font_weight.setCurrentIndex(max(0,self.font_weight.findData(DEFAULT_PRESET['weight'])))
+        self.name_size.setValue(DEFAULT_PRESET['name_size'])
+        self.quota_family.setCurrentIndex(max(0,self.quota_family.findData(DEFAULT_PRESET['quota_family'])))
+        self.quota_weight.setCurrentIndex(max(0,self.quota_weight.findData(DEFAULT_PRESET['quota_weight'])))
+        self.quota_size.setValue(DEFAULT_PRESET['quota_size'])
         self._preview_typography()
     def _preview_typography(self):
         style=self._typography_value()

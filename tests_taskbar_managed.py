@@ -23,7 +23,7 @@ assert len(expanded_layout(len(details))['children'][0]['children'])==len(detail
 case.metrics[1]['percent']=0
 layout=make_layout(_dock_quota_text(case));parts=layout['children'][0]['children'][1]['children'][1]['children']
 assert ''.join(p.get('text',' ') for p in parts)=='11月7日 20:01 周重置'
-assert parts[0]['color']=='#FFE45D6A' and parts[0]['fontWeight']=='bold'
+assert parts[0]['color']=='#FFE45D6A' and parts[0]['fontWeight']=='semibold'
 assert '重置时间：11-07 20:01' in make_details(case)
 
 class Process:

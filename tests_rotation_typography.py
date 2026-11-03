@@ -28,6 +28,9 @@ for options in [None,dict(family='DengXian',weight=400,name_size=14,quota_size=1
   if part['type']=='text':assert part['fontFamily']==style['quota_family'] and part['fontWeight']==WEIGHTS[style['quota_weight']]
 combined=typography(dict(family='Segoe UI Variable Text',weight=400,name_size=12,quota_family='Segoe UI Variable Display',quota_weight=600,quota_size=15))
 assert combined['family']!=combined['quota_family'] and combined['weight']!=combined['quota_weight'],'Name and quota fonts must be adjustable independently'
-assert typography({'family':'invalid','weight':None,'quota_family':'bogus'})['quota_family']=='Microsoft YaHei UI'
-assert typography({'family':'invalid','weight':None})['weight']==700
+assert typography({'family':'invalid','weight':None,'quota_family':'bogus'})['quota_family']=='Segoe UI Variable Text'
+assert typography({'family':'invalid','weight':None})['weight']==600
+default=typography(None)
+assert (default['weight'],default['name_size'],default['quota_weight'],default['quota_size'])==(600,12,600,12),'默认应为较粗 12px'
+assert default['family']=='Segoe UI Variable Text' and default['quota_family']=='Segoe UI Variable Display'
 print('Failure exclusion/recovery, per-provider updates, exhausted quotas and split name/quota typography passed')
