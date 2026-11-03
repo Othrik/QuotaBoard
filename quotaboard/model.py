@@ -27,6 +27,8 @@ class QuotaResult:
     subscription_plan: str = ''
     subscription_source: str = ''
     subscription_note: str = ''
+    details: Optional[list] = None  # Structured, non-percentage balance details.
+    account_available: Optional[bool] = None
 
     def __post_init__(self) -> None:
         if not self.updated_at:
@@ -35,7 +37,7 @@ class QuotaResult:
     def status_level(self) -> str:
         """状态等级：ok(正常) / warn(偏低) / danger(告警或失败)。
         颜色规则：剩余 ≥75% 绿色，<30% 红色，中间黄色。"""
-        if not self.ok:
+        if not self.ok or self.account_available is False:
             return "danger"
         if self.percent is None:
             return "ok"

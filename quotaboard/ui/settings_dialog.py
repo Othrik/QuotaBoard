@@ -25,7 +25,7 @@ GUIDES={
  'zhipu_member':'使用智谱清言客户端登录态查询积分。首次读取失败时，可关闭客户端后重试，或填写备用 Token。',
  'dmxapi':'在 dmxapi.cn 个人资料中查找用户 ID，并在更多选项中取得系统访问令牌。这里填写的是系统令牌，而非模型调用 API Key。',
  'openai':'填写 OpenAI 平台 API Key，用于查询 API 账户额度。',
- 'deepseek':'填写 DeepSeek 开放平台 API Key，用于查询账户余额。',
+ 'deepseek':'填写 DeepSeek 开放平台 API Key，可查看各币种总余额、充值余额、未过期赠送余额和是否足够调用。API 不提供今日/本月消费与 Token 账单。',
  'kimi':'填写 Moonshot / Kimi 开放平台 API Key，用于查询账户余额。',
  'zhipu':'填写智谱开放平台 API Key，自动查询账户可用余额，无需网页登录。这里显示预付费人民币余额，不是 GLM Coding Plan 的订阅额度。',
  'volc':'填写火山方舟 Access Key 与 Secret Key，再选择需要查询的额度类型。',

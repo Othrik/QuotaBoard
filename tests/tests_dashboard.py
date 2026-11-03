@@ -29,7 +29,8 @@ rows = [
     QuotaResult('gemini','Gemini','5h 98% · 周 99%', sub_note='PRO · 5h 重置 20:30 · 周重置 11-09 22:29',metrics=[dict(label='5h',percent=98,note='5h 重置 20:30'),dict(label='周',percent=99.0329,note='周重置 11-09 22:29')]),
     QuotaResult('doubao','豆包','0%', metrics=[dict(label='5h',percent=0),dict(label='周',percent=0)],sub_note='11月5日 03:04 周重置'),
     QuotaResult('zhipu_member','智谱清言','积分 23,859.98'),
-    QuotaResult('deepseek','DeepSeek','¥ 86.42'),
+    QuotaResult('deepseek','DeepSeek','¥ 86.42',account_available=True,details=[
+        dict(label='充值余额 · CNY',value='¥80.00'),dict(label='赠送余额 · CNY',value='¥6.42')]),
     QuotaResult('dmxapi','DMXAPI','—',ok=False,error='连接暂时不可用，下一轮自动重试'),
 ]
 for row in rows:
@@ -39,6 +40,12 @@ assert dashboard.cards['gemini'].metric_rows[1][2].text() == '99%'
 assert dashboard.cards['gemini'].note.text().count('重置 20:30') == 1
 assert dashboard.cards['dmxapi'].status.text() == '请求失败'
 assert dashboard.cards['openai'].status.text() == '未启用'
+assert dashboard.cards['deepseek'].detail_rows[0][1].text()=='充值余额 · CNY'
+assert dashboard.cards['deepseek'].detail_rows[1][2].text()=='¥6.42'
+scheduler.result_ready.emit('deepseek',QuotaResult('deepseek','DeepSeek','—',ok=False,error='test failure'))
+assert all(widget.isHidden() for widget,_,_ in dashboard.cards['deepseek'].detail_rows)
+scheduler.result_ready.emit('deepseek',rows[4])
+assert not dashboard.cards['deepseek'].detail_rows[0][0].isHidden()
 changes=[]
 dashboard.taskbar_selection_changed.connect(lambda: changes.append(True))
 dashboard.cards['gemini'].taskbar_check.setChecked(False)

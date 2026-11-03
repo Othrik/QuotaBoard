@@ -332,6 +332,8 @@ class _Row(QFrame):
             tip += f"\n{result.sub_note}"
         if result.error:
             tip += f"\n错误：{result.error}"
+        for detail in result.details or []:
+            tip += '\n'+str(detail.get('label',''))+'：'+str(detail.get('value',''))
         self.setToolTip(tip)
 
 
@@ -340,6 +342,8 @@ def _dock_quota_text(result: QuotaResult, font_weight: int = 700) -> str:
         return f'<span style="color:{C_RED}; font-weight:{font_weight}">{escape(text)}</span>'
     if not result.ok:
         return red("请求失败")
+    if result.account_available is False:
+        return red(result.display)
     if not result.metrics:
         text = escape(result.display)
         if result.percent is not None:
@@ -400,6 +404,9 @@ def _quota_details(result: QuotaResult, include_title: bool = True, font_weight:
             row("已用", f"{result.used:,.2f} {result.unit}")
     if result.sub_note and not result.metrics:
         row("说明", result.sub_note)
+    if result.ok:
+        for detail in result.details or []:
+            row(str(detail.get('label','')),str(detail.get('value','')))
     return (f'<qt><table width="{table_width}" cellspacing="0" cellpadding="0">'
             + (f'<tr><td colspan="2" style="padding:0 0 10px;"><b>{escape(result.label)}</b></td></tr>' if include_title else '')
             + ''.join(rows) +

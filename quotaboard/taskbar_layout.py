@@ -75,6 +75,8 @@ def make_details(result):
         if result.total is not None:lines.append(f'总量：{result.total:,.2f} {result.unit}')
         if result.used is not None:lines.append(f'已用：{result.used:,.2f} {result.unit}')
         if result.sub_note:lines.append('说明：'+result.sub_note)
+    if result.ok:
+        lines.extend(str(item.get('label',''))+'：'+str(item.get('value','')) for item in (result.details or []))
     lines.append('刷新时间：'+result.updated_at)
     return [line for line in lines if line][:11]
 

@@ -99,6 +99,16 @@ class QuotaCard(QFrame):
             group.addWidget(bar)
             layout.addWidget(widget)
             self.metric_rows.append((widget, name, amount, bar))
+        self.detail_rows=[]
+        for _ in range(8):
+            widget=QWidget(self)
+            row=QHBoxLayout(widget);row.setContentsMargins(0,0,0,0)
+            caption=label('', 'muted');value=label()
+            value.setStyleSheet('font-size:12px;font-weight:600;')
+            value.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            row.addWidget(caption);row.addStretch();row.addWidget(value)
+            layout.addWidget(widget)
+            self.detail_rows.append((widget,caption,value))
         self.note = label('', 'muted')
         self.note.setWordWrap(True)
         self.note.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -140,6 +150,15 @@ class QuotaCard(QFrame):
         success = enabled and result is not None and result.ok
         self.status.setText('未启用' if not enabled else '等待刷新' if result is None else '已更新' if success else '请求失败')
         self.status.setStyleSheet('font-size:11px;color:' + ('#18966C' if success else '#D85E64' if enabled and result else '#8B98AA') + ';')
+        if success and result.account_available is not None:
+            self.status.setText('可调用' if result.account_available else '余额不足')
+            self.status.setStyleSheet('font-size:11px;color:'+('#18966C' if result.account_available else '#D85E64')+';')
+        details=(result.details or []) if success else []
+        for index,(widget,caption,value) in enumerate(self.detail_rows):
+            widget.setVisible(index<len(details))
+            if index<len(details):
+                caption.setText(str(details[index].get('label','')))
+                value.setText(str(details[index].get('value','')))
         metrics = (result.metrics or []) if success else []
         if success and not metrics and result.percent is not None:
             metrics = [dict(label='剩余额度', percent=result.percent)]
