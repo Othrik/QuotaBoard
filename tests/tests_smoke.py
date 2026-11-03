@@ -44,7 +44,6 @@ def test_provider_error_paths() -> None:
     from quotaboard.providers import PROVIDERS
 
     cases = {
-        "openai": {"api_key": "sk-invalid-quotaboard-test"},
         "zhipu": {"api_key": "invalid-quotaboard-test"},
         "dmxapi": {"api_key": "invalid-quotaboard-test"},
     }

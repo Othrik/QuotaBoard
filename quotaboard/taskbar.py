@@ -7,6 +7,7 @@ from .model import QuotaResult,PLATFORM_META
 from .taskbar_layout import make_layout,make_details,expanded_layout,detail_height
 from . import __version__
 from .balance_display import MONETARY_PLATFORMS
+from .rotation import rotation_seconds
 
 WIDGET_ID='com.othrik.quotaboard'
 
@@ -44,10 +45,26 @@ class TaskbarController(QObject):
         self.process=QProcess(self);self.process.finished.connect(self._finished)
         self.next_start=0;self.failures=0;self.stopping=False;self.prepared=False;self._last_content=None
         self._last_catalog=None;self._last_heartbeat=0.0
+        self._rotation_platform=None;self._rotation_deadline=0;self._rotation_interval=None;self._rotation_keys=()
         self.timer=QTimer(self);self.timer.setInterval(1000);self.timer.timeout.connect(self.tick);self.timer.start()
         self.command_timer=QTimer(self);self.command_timer.setInterval(100);self.command_timer.timeout.connect(self.read_commands);self.command_timer.start()
     def set_rows(self,rows):
         self.rows=list(rows);self.tick()
+    def rotation_row(self,rows,now=None):
+        now=time.monotonic() if now is None else now
+        interval=rotation_seconds(self.config._data.get('taskbar_rotation_seconds',5))
+        keys=tuple(row.platform for row in rows)
+        if not keys:
+            self._rotation_platform=None;self._rotation_keys=();return None
+        if self._rotation_platform not in keys:
+            self._rotation_platform=keys[0];self._rotation_deadline=now+interval
+        elif interval!=self._rotation_interval or keys!=self._rotation_keys:
+            self._rotation_deadline=now+interval
+        elif now>=self._rotation_deadline:
+            self._rotation_platform=keys[(keys.index(self._rotation_platform)+1)%len(keys)]
+            self._rotation_deadline=now+interval
+        self._rotation_interval=interval;self._rotation_keys=keys
+        return next(row for row in rows if row.platform==self._rotation_platform)
     def prepare(self):
         from .ui.floating_window import _resource_path
         source=Path(_resource_path('assets/taskbar/QuotaBoard.TaskbarHost.exe'))
@@ -65,7 +82,7 @@ class TaskbarController(QObject):
             if not self.prepared:self.prepare()
             from .ui.floating_window import _dock_quota_text,_resource_path,PLATFORM_LOGO
             playable=rotation_candidates(self.rows,self.config._data.get('platforms'))
-            row=playable[(int(time.monotonic())//5)%len(playable)] if playable else QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
+            row=self.rotation_row(playable) or QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
             layout=make_layout(taskbar_quota_text(row,self.config._data.get('reset_display','absolute')),self.config._data.get('display_typography'),taskbar_label(row))
             details=make_details(row)
             entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=layout['width'],height=layout['height'],layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='click',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
@@ -75,7 +92,7 @@ class TaskbarController(QObject):
             if catalog != self._last_catalog:
                 write_json(self.data/'Runtime/WidgetCatalog.json',catalog)
                 self._last_catalog=catalog
-            write_json(self.data/'config.json',dict(configVersion=3,layout=dict(mode='row'),widgets=[dict(id=WIDGET_ID,widgetId=WIDGET_ID,instanceId=WIDGET_ID,enabled=bool(playable),order=0,position=self.config._data.get("taskbar_position",dict(anchorPercent=0,offsetPx=0)),settings={})],rotation=dict(intervalSeconds=5,widgetIds=[WIDGET_ID],instanceIds=[WIDGET_ID])))
+            write_json(self.data/'config.json',dict(configVersion=3,layout=dict(mode='row'),widgets=[dict(id=WIDGET_ID,widgetId=WIDGET_ID,instanceId=WIDGET_ID,enabled=bool(playable),order=0,position=self.config._data.get("taskbar_position",dict(anchorPercent=0,offsetPx=0)),settings={})],rotation=dict(intervalSeconds=rotation_seconds(self.config._data.get('taskbar_rotation_seconds',5)),widgetIds=[WIDGET_ID],instanceIds=[WIDGET_ID])))
             content=dict(platform=row.platform,label=taskbar_label(row),icon=_resource_path('assets/logo/'+PLATFORM_LOGO.get(row.platform,'openai.png')))
             content.update({f'line{i}':details[i] if i<len(details) else '' for i in range(11)})
             if content != self._last_content:

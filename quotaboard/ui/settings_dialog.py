@@ -6,6 +6,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QApplication,QCheckBox,QComboBox,QDialog,QFormLayout,QFrame,QGroupBox,QHBoxLayout,QLabel,QLineEdit,QMessageBox,QPushButton,QAbstractItemView,QListWidget,QListWidgetItem,QScrollArea,QSpinBox,QStackedWidget,QVBoxLayout,QWidget)
 from ..config import Config
 from .. import __version__
+from ..rotation import rotation_seconds
 from ..model import PLATFORM_META
 from ..providers import PROVIDERS
 from ..typography import typography,FAMILIES,DEFAULT_PRESET,DEFAULT_FLOATING_PRESET,floating_typography,mixed_text
@@ -107,6 +108,7 @@ class SettingsDialog(QDialog):
         _,lay=self._scroll_page()
         box,v=card('任务栏显示');self.taskbar_check=QCheckBox('在任务栏常驻显示 AI 额度');v.addWidget(self.taskbar_check);v.addWidget(muted('点击任务栏额度打开总览；总览卡片可分别勾选是否参与任务栏轮播。请求失败的平台暂停轮播，成功后自动恢复。'))
         row=QHBoxLayout();row.addWidget(QLabel('左右微调'));self.position_spin=QSpinBox();self.position_spin.setRange(-4096,4096);self.position_spin.setSuffix(' 像素');self.position_spin.setFixedWidth(140);row.addWidget(self.position_spin);reset=QPushButton('恢复左侧位置');reset.clicked.connect(self._reset_position);row.addWidget(reset);row.addStretch();v.addLayout(row);lay.addWidget(box)
+        row=QHBoxLayout();row.addWidget(QLabel('轮播间隔'));self.rotation_spin=QSpinBox();self.rotation_spin.setRange(1,300);self.rotation_spin.setSuffix(' 秒');self.rotation_spin.setFixedWidth(140);row.addWidget(self.rotation_spin);row.addWidget(muted('每个平台的停留时间，默认 5 秒'));row.addStretch();v.addLayout(row)
         box,v=card('自动刷新');row=QHBoxLayout();row.addWidget(QLabel('刷新间隔'));self.interval_spin=QSpinBox();self.interval_spin.setRange(1,1440);self.interval_spin.setSuffix(' 分钟');self.interval_spin.setFixedWidth(140);row.addWidget(self.interval_spin);row.addStretch();v.addLayout(row);lay.addWidget(box)
         box,v=card('重置提示');self.reset_display=QComboBox()
         self.reset_display.addItem('具体时间（11月5日 03:04 周重置）','absolute')
@@ -256,6 +258,7 @@ class SettingsDialog(QDialog):
         self._set_profile('floating',floating_typography(self.config._data))
         self._preview_typography()
         self.interval_spin.setValue(self.config.refresh_interval_minutes);self.taskbar_check.setChecked(bool(self.config._data.get('taskbar_mode',False)))
+        self.rotation_spin.setValue(rotation_seconds(self.config.get('taskbar_rotation_seconds',5)))
         self.reset_display.setCurrentIndex(max(0,self.reset_display.findData(self.config.get('reset_display','absolute'))))
         position=self.config._data.get('taskbar_position',{});self._anchor_percent=position.get('anchorPercent',0);self.position_spin.setValue(position.get('offsetPx',0))
         self._populate_order(self.config.platform_order)
@@ -281,6 +284,7 @@ class SettingsDialog(QDialog):
             self.config._data['display_typography']=self._typography_value()
             self.config._data['floating_typography']=self._profile_value('floating')
             self.config._data['reset_display']=self.reset_display.currentData()
+            self.config._data['taskbar_rotation_seconds']=self.rotation_spin.value()
             self.config._data['taskbar_mode']=self.taskbar_check.isChecked();self.config._data['taskbar_position']=dict(anchorPercent=self._anchor_percent,offsetPx=self.position_spin.value());self.config.refresh_interval_minutes=self.interval_spin.value()
             self.config.platform_order=[self.order_list.item(i).data(Qt.UserRole) for i in range(self.order_list.count())];self.config.save()
         except Exception as error:

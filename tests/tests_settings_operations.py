@@ -39,7 +39,9 @@ try:
  d.quota_family.setCurrentIndex(d.quota_family.findData('Segoe UI Variable Display'));d.quota_weight.setCurrentIndex(d.quota_weight.findData(600))
  saved=[]
  d.saved.connect(lambda: saved.append(True))
+ d.rotation_spin.setValue(12)
  d._save();assert c.saved==1 and saved,'Save must emit the saved signal for immediate refresh'
+ assert c._data['taskbar_rotation_seconds']==12
  assert d.result()==0 and '已保存' in d.save_status.text(),'Save must keep the panel open'
  assert not (d.windowFlags() & Qt.WindowType.WindowStaysOnTopHint),'Settings must not force topmost'
  assert c.get_credential('deepseek','api_key')=='saved-test-key'

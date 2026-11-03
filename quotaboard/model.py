@@ -49,9 +49,8 @@ class QuotaResult:
 
 
 # 平台注册元信息（展示顺序、设置项名称等）
-PAUSED_PLATFORMS=frozenset(('kimi','volc'))
+PAUSED_PLATFORMS=frozenset(('openai','kimi','volc'))
 PLATFORM_META: dict[str, dict] = {
-    "openai": {"label": "Open AI API Platform", "credential_fields": [("api_key", "API Key")]},
     "codex": {
         "label": "ChatGPT",
         "credential_fields": [],
