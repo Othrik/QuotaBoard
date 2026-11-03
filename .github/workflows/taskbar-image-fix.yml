@@ -4,6 +4,9 @@ on:
   push:
     branches: [fix/taskbar-image-stream]
     paths: ['tools/patch_taskbar_images.py', 'tools/patch_taskbar_managed.py', 'tools/patch_taskbar_popup.py', '.github/workflows/taskbar-image-fix.yml']
+concurrency:
+  group: taskbar-build-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

@@ -23,7 +23,8 @@ replacement='''        if (_wcsicmp(definition->renderer.c_str(), L"native") == 
             g_quotaDisplayedFrames[instance.instanceId] = QuotaDisplayedFrame{
                 context, definition->expandedLayout,
                 definition->expandedWidth, definition->expandedHeight};
-            auto button = panel.Child().try_as<wuxc::Button>();
+            auto child = panel.Child();
+            auto button = child ? child.try_as<wuxc::Button>() : nullptr;
             if (!button || button.Name() != L"TaskbarWidgetsNativeExpandButton") {
                 button = wuxc::Button();
                 button.Name(L"TaskbarWidgetsNativeExpandButton");
