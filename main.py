@@ -10,13 +10,13 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QLockFile, QSharedMemory
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication
 
 from quotaboard.ui.floating_window import make_app_icon
 from quotaboard import __version__
 from quotaboard.config import Config
 from quotaboard.scheduler import Scheduler
-from quotaboard.ui import FloatingWindow, SettingsDialog, TrayIcon
+from quotaboard.ui import FloatingWindow, TrayIcon
 
 SHARED_MEM_KEY = "QuotaBoard_single_instance"
 # 持有引用，避免 QLockFile/QSharedMemory 被回收后锁提前释放
@@ -70,27 +70,13 @@ def main() -> int:
     window.native_taskbar.failed.connect(lambda message: tray.showMessage("QuotaBoard", message))
     app.aboutToQuit.connect(window.native_taskbar.stop)
 
+    from quotaboard.ui.dashboard import Dashboard
+    dashboard = Dashboard(config, scheduler)
+    window.dashboard = dashboard
+    dashboard.settings_saved.connect(lambda: (window.render(), scheduler.apply_interval(), scheduler.refresh_all()))
+
     def open_settings() -> None:
-        existing = getattr(window, "_settings_dialog", None)
-        if existing is not None:
-            existing.raise_()
-            existing.activateWindow()
-            return
-        # 独立普通窗口：不继承悬浮窗的置顶层级，避免设置面板强制盖在最上层
-        dlg = SettingsDialog(config)
-        dlg.saved.connect(lambda: (window.render(), scheduler.apply_interval(), scheduler.refresh_all()))
-        window._settings_dialog = dlg
-        screen = app.primaryScreen().availableGeometry()
-        dlg.move(screen.left() + max(8, (screen.width() - dlg.width()) // 2),
-                 screen.top() + max(8, (screen.height() - dlg.height()) // 2))
-        try:
-            accepted = dlg.exec() == QDialog.DialogCode.Accepted
-        finally:
-            window._settings_dialog = None
-        if accepted:
-            window.render()
-            scheduler.apply_interval()
-            scheduler.refresh_all()
+        dashboard.present()
 
     def open_quota_details(platform: str) -> None:
         result = next((r for r in window.native_taskbar.rows if r.platform == platform), None)
@@ -123,6 +109,8 @@ def main() -> int:
     scheduler.start()
     scheduler.refresh_all()
     tray.show()
+    if "--overview" in sys.argv:
+        dashboard.present()
 
     code = app.exec()
     if shm is not None:

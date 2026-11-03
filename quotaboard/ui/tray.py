@@ -48,9 +48,9 @@ class TrayIcon(QSystemTrayIcon):
         act_refresh.triggered.connect(self.scheduler.refresh_all)
         menu.addAction(act_refresh)
 
-        act_settings = QAction("设置…", menu)
+        act_settings = QAction("额度总览…", menu)
         act_settings.triggered.connect(self.open_settings)
-        menu.addAction(act_settings)
+        menu.insertAction(self.act_show, act_settings)
 
         self.act_taskbar = QAction("任务栏常驻额度", menu)
         self.act_taskbar.setCheckable(True)
@@ -86,7 +86,7 @@ class TrayIcon(QSystemTrayIcon):
 
     def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
-            self.toggle_window()
+            self.open_settings()
 
     def on_autostart_toggled(self, checked: bool) -> None:
         self.config.startup_with_windows = checked

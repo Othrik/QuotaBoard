@@ -36,6 +36,7 @@ class Scheduler(QObject):
     """管理刷新节奏；每轮完成后统一发 refreshed 信号。"""
 
     result_ready = Signal(str, object)
+    refresh_started = Signal()
     refreshed = Signal(dict)  # {platform_key: QuotaResult}
 
     def __init__(self, config: Config, parent: QObject | None = None) -> None:
@@ -63,6 +64,7 @@ class Scheduler(QObject):
             self.refreshed.emit({})
             return
         self.running = True
+        self.refresh_started.emit()
         self.expected = len(keys)
         self.pending = {}
         for key in keys:

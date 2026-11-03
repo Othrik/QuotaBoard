@@ -902,7 +902,7 @@ class FloatingWindow(QWidget):
         menu.addAction(taskbar)
         act_refresh = QAction("立即刷新", self)
         act_refresh.triggered.connect(self.refresh_requested)
-        act_settings = QAction("设置…", self)
+        act_settings = QAction("额度总览…", self)
         act_settings.triggered.connect(self.settings_requested)
         act_quit = QAction("退出", self)
         act_quit.triggered.connect(self.quit_requested)
