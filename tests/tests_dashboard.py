@@ -23,7 +23,7 @@ dashboard = Dashboard(config, scheduler)
 assert len(dashboard.cards) == len(PLATFORM_META)
 rows = [
     QuotaResult('codex','ChatGPT','5h 82% · 周 44%', metrics=[dict(label='5h',percent=82,note='5h 重置 18:42'),dict(label='周',percent=44,note='周重置 11-07 20:01')]),
-    QuotaResult('gemini','Gemini','5h 98% · 周 99%', metrics=[dict(label='5h',percent=98,note='5h 重置 20:30'),dict(label='周',percent=99,note='周重置 11-09 22:29')]),
+    QuotaResult('gemini','Gemini','5h 98% · 周 99%', sub_note='PRO · 5h 重置 20:30 · 周重置 11-09 22:29',metrics=[dict(label='5h',percent=98,note='5h 重置 20:30'),dict(label='周',percent=99.0329,note='周重置 11-09 22:29')]),
     QuotaResult('doubao','豆包','0%', metrics=[dict(label='5h',percent=0),dict(label='周',percent=0)],sub_note='11月5日 03:04 周重置'),
     QuotaResult('zhipu_member','智谱清言','积分 23,859.98'),
     QuotaResult('deepseek','DeepSeek','¥ 86.42'),
@@ -32,6 +32,8 @@ rows = [
 for row in rows:
     scheduler.result_ready.emit(row.platform, row)
 assert dashboard.cards['codex'].metric_rows[0][2].text() == '82%'
+assert dashboard.cards['gemini'].metric_rows[1][2].text() == '99%'
+assert dashboard.cards['gemini'].note.text().count('重置 20:30') == 1
 assert dashboard.cards['dmxapi'].status.text() == '请求失败'
 assert dashboard.cards['openai'].status.text() == '未启用'
 dashboard.filter.setCurrentIndex(1)

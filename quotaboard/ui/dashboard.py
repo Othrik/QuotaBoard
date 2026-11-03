@@ -133,7 +133,7 @@ class QuotaCard(QFrame):
             except (ValueError, TypeError):
                 percent = 0
             color = _pct_color(percent)
-            amount.setText(f'{percent:g}%')
+            amount.setText(f'{percent:.0f}%')
             amount.setStyleSheet(f'font-size:15px;font-weight:700;color:{color};')
             bar.setValue(round(percent))
             bar.setStyleSheet(f'QProgressBar {{background:#EDF1F6;border:none;border-radius:2px;}} QProgressBar::chunk {{background:{color};border-radius:2px;}}')
@@ -147,7 +147,9 @@ class QuotaCard(QFrame):
         elif not result.ok:
             note = result.error or '查询失败，下一轮刷新将自动重试。'
         else:
-            note = ' · '.join(dict.fromkeys([s for s in [result.sub_note, *notes] if s]))
+            parts = [part.strip() for text in [result.sub_note, *notes]
+                     for part in text.split('·') if part.strip()]
+            note = ' · '.join(dict.fromkeys(parts))
         self.note.setText(note)
         self.note.setVisible(bool(note))
         self.timestamp.setText('刷新于 ' + result.updated_at if enabled and result else '尚无刷新记录')
@@ -263,7 +265,8 @@ class Dashboard(QDialog):
     def apply_filter(self, *_):
         query = self.search.text().strip().lower()
         visible = []
-        for key in self.config.platform_order:
+        ordered = sorted(self.config.platform_order, key=lambda key: not self.config.is_enabled(key))
+        for key in ordered:
             if key not in self.cards:
                 continue
             card = self.cards[key]
