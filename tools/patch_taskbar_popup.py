@@ -124,3 +124,16 @@ assert s.count(old)==1
 s=s.replace(old,new)
 p.write_text(s,encoding='utf8')
 print('Forwarded taskbar details to QuotaBoard application window')
+
+# Use one explicitly selected family for Chinese, Latin and digits.
+s=p.read_text(encoding='utf8')
+old='''        if (type == L"icon") {
+            block.FontFamily(wuxm::FontFamily(L"Segoe MDL2 Assets"));
+        }'''
+new='''        if (type == L"icon") {
+            block.FontFamily(wuxm::FontFamily(L"Segoe MDL2 Assets"));
+        } else {
+            block.FontFamily(wuxm::FontFamily(JsonString(node, L"fontFamily", L"Microsoft YaHei UI")));
+        }'''
+assert s.count(old)==1
+p.write_text(s.replace(old,new),encoding='utf8')
