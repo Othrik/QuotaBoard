@@ -96,3 +96,31 @@ replace_once('''    root.PointerCaptureLost([root, dragState](auto const&, wuxi:
         if (dragState->pressed) {''')
 p.write_text(s,encoding='utf8')
 print('Applied stable taskbar popup snapshot and click capture fix')
+
+# A taskbar XamlRoot can clip native flyouts to the taskbar. The application
+# owns an independent, screen-clamped detail window instead.
+s=p.read_text(encoding='utf8')
+old='std::optional<int> offsetPx = std::nullopt) {'
+assert s.count(old)==1
+s=s.replace(old,'std::optional<int> offsetPx = std::nullopt,\n                              const std::wstring& platform = L"\") {')
+old='    if (positionPct.has_value()) {'
+assert s.count(old)==1
+s=s.replace(old,'''    if (!platform.empty()) {
+        json += ",\\\"platform\\\":\\\"" + JsonEscapeUtf8(platform) + "\\\"";
+    }
+'''+old)
+old='                        ShowDynamicWidgetPopup(anchor, widgetId, instanceId);'
+new='''                        auto frame = g_quotaDisplayedFrames.find(instanceId);
+                        if (frame != g_quotaDisplayedFrames.end()) {
+                            auto data = frame->second.context.GetNamedObject(L"data");
+                            const auto platform = JsonString(data, L"platform");
+                            if (!platform.empty()) {
+                                WriteTaskbarWidgetsCommand(L"showQuotaDetails", L"", instanceId,
+                                    std::nullopt, std::nullopt, platform);
+                                Wh_Log(L"QuotaBoard detail request: %s", platform.c_str());
+                            }
+                        }'''
+assert s.count(old)==1
+s=s.replace(old,new)
+p.write_text(s,encoding='utf8')
+print('Forwarded taskbar details to QuotaBoard application window')
