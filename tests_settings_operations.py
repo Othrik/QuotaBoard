@@ -3,7 +3,7 @@ import os,time,threading
 os.environ['QT_QPA_PLATFORM']='offscreen'
 from pathlib import Path
 from PySide6.QtWidgets import QApplication,QDialog
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt,QTimer
 from quotaboard.config import Config
 from quotaboard.model import QuotaResult
 from quotaboard.ui.settings_dialog import SettingsDialog,PROVIDERS
@@ -36,10 +36,16 @@ try:
  assert not d._workers and '连接成功' in d.test_status['deepseek'].text()
  assert c.saved==0,'Connection test unexpectedly saved settings'
  d.font_weight.setCurrentIndex(d.font_weight.findData(700));d.name_size.setValue(13);d.quota_size.setValue(14)
- d._save();assert c.saved==1 and d.result()==QDialog.Accepted
+ d.quota_family.setCurrentIndex(d.quota_family.findData('Segoe UI Variable Display'));d.quota_weight.setCurrentIndex(d.quota_weight.findData(600))
+ saved=[]
+ d.saved.connect(lambda: saved.append(True))
+ d._save();assert c.saved==1 and saved,'Save must emit the saved signal for immediate refresh'
+ assert d.result()==0 and '已保存' in d.save_status.text(),'Save must keep the panel open'
+ assert not (d.windowFlags() & Qt.WindowType.WindowStaysOnTopHint),'Settings must not force topmost'
  assert c.get_credential('deepseek','api_key')=='saved-test-key'
  assert c._data['taskbar_position']==dict(anchorPercent=0,offsetPx=0)
  assert c.platform_order[1]==first
  assert c._data['display_typography']['weight']==700 and c._data['display_typography']['quota_size']==14
+ assert c._data['display_typography']['quota_family']=='Segoe UI Variable Display' and c._data['display_typography']['quota_weight']==600
 finally:release.set();PROVIDERS['deepseek']=original
 print('Settings navigation, sorting, reset position, secret preservation, async responsiveness and save passed')

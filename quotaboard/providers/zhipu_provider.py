@@ -4,6 +4,8 @@
 """
 from __future__ import annotations
 
+import urllib.error
+
 from ..model import QuotaResult
 from .base import Provider, http_get_json
 
@@ -20,6 +22,14 @@ class ZhipuProvider(Provider):
             return self.err("未配置 API Key")
         try:
             data = http_get_json(BALANCE_URL, {"Authorization": f"Bearer {api_key}"})
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                # 2026-11 实测：/api/paas/v4/balance 已下线（Spring 404）；
+                # 控制台内部余额端点 /api/biz/v1/balance/* 仅允许站内会话（403）
+                return self.err("智谱已下线公开余额接口，请到 bigmodel.cn 控制台查看余额")
+            if e.code in (401, 403):
+                return self.err(f"API Key 鉴权失败（HTTP {e.code}），请检查密钥")
+            return self.err(f"请求失败：HTTP {e.code}")
         except Exception as e:
             return self.err(f"请求失败：{e}")
 

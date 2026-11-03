@@ -47,7 +47,7 @@ def test_provider_error_paths() -> None:
         "openai": {"api_key": "sk-invalid-quotaboard-test"},
         "zhipu": {"api_key": "invalid-quotaboard-test"},
         "kimi": {"api_key": "sk-invalid-quotaboard-test"},
-        "chatgpt_plus": {"session_token": "invalid-token-test-0000"},
+        "dmxapi": {"api_key": "invalid-quotaboard-test"},
     }
     for key, cfg in cases.items():
         result = PROVIDERS[key](cfg).fetch()

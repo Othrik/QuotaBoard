@@ -7,8 +7,13 @@ from PySide6.QtWidgets import (QApplication,QCheckBox,QComboBox,QDialog,QFormLay
 from ..config import Config
 from ..model import PLATFORM_META
 from ..providers import PROVIDERS
-from ..typography import typography,FAMILIES
+from ..typography import typography,FAMILIES,WEATHER_PRESET
 from .floating_window import _resource_path,PLATFORM_LOGO
+
+FONT_LABELS={'Microsoft YaHei UI':'微软雅黑 UI','Microsoft YaHei':'微软雅黑','DengXian':'等线',
+ 'Segoe UI Variable Text':'Segoe UI Var Text','Segoe UI Variable Text Semilight':'Segoe UI Var Text Semilight','Segoe UI Variable Text Semibold':'Segoe UI Var Text Bold',
+ 'Segoe UI Variable Display':'Segoe UI Var Display','Segoe UI Variable Display Semilight':'Segoe UI Var Display Semilight','Segoe UI Variable Display Light':'Segoe UI Var Display Light','Segoe UI Variable Display Semibold':'Segoe UI Var Display Bold',
+ 'Segoe UI Variable':'Segoe UI Var（可变）','Segoe UI':'Segoe UI'}
 
 FIELDS_LABEL={'system_token':'系统访问令牌','user_id':'用户 ID','api_key':'API Key','ak':'Access Key','sk':'Secret Key','manual_token':'手动 Token','manual_sessionid':'备用 sessionid'}
 GUIDES={
@@ -67,9 +72,13 @@ def card(title):
     return box,lay
 
 class SettingsDialog(QDialog):
+    saved=Signal()
     def __init__(self,config:Config,parent:QWidget|None=None):
         super().__init__(parent);self.config=config;self._workers={}
         self.setWindowTitle('QuotaBoard 设置');self.setMinimumSize(680,480);self.setStyleSheet(STYLE)
+        # 独立普通窗口：不强制置顶，可被其他窗口遮挡、可在任务栏找到
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,False)
+        self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint,False)
         self.field_inputs={};self.enable_checks={};self.volc_actions={};self.platform_boxes={};self.test_buttons={};self.test_status={};self.nav_items={}
         self._build_ui();self._load()
         geo=QApplication.primaryScreen().availableGeometry();self.resize(min(900,geo.width()-40),min(760,geo.height()-40))
@@ -88,23 +97,30 @@ class SettingsDialog(QDialog):
         for key,meta in PLATFORM_META.items():
             item=QListWidgetItem(meta['label']);item.setData(Qt.UserRole,key);item.setIcon(QIcon(_resource_path('assets/logo/'+PLATFORM_LOGO.get(key,'openai.png'))));self.navigation.addItem(item);self.nav_items[key]=item;self._platform_page(key,meta)
         self.navigation.currentRowChanged.connect(self._select_page);self.navigation.setCurrentRow(0)
-        footer=QHBoxLayout();hint=muted('更改将在保存后生效 · 凭据仅加密保存在本机');hint.setWordWrap(False);footer.addWidget(hint);footer.addStretch()
-        cancel=QPushButton('取消');cancel.clicked.connect(self.reject);save=QPushButton('保存并刷新');save.setObjectName('primary');save.setDefault(True);save.clicked.connect(self._save);footer.addWidget(cancel);footer.addWidget(save);outer.addLayout(footer)
+        footer=QHBoxLayout();hint=muted('更改将在保存后生效 · 凭据仅加密保存在本机');hint.setWordWrap(False);footer.addWidget(hint);self.save_status=QLabel('');self.save_status.setStyleSheet('color:#18966C;font-size:11px;');footer.addWidget(self.save_status);footer.addStretch()
+        cancel=QPushButton('关闭');cancel.clicked.connect(self.reject);save=QPushButton('保存并刷新');save.setObjectName('primary');save.setDefault(True);save.clicked.connect(self._save);footer.addWidget(cancel);footer.addWidget(save);outer.addLayout(footer)
     def _general_page(self):
         _,lay=self._scroll_page()
         box,v=card('任务栏显示');self.taskbar_check=QCheckBox('在任务栏常驻显示 AI 额度');v.addWidget(self.taskbar_check);v.addWidget(muted('点击查看详情，右键打开设置。请求失败的平台暂停轮播，成功后自动恢复。'))
         row=QHBoxLayout();row.addWidget(QLabel('左右微调'));self.position_spin=QSpinBox();self.position_spin.setRange(-4096,4096);self.position_spin.setSuffix(' 像素');self.position_spin.setFixedWidth(140);row.addWidget(self.position_spin);reset=QPushButton('恢复左侧位置');reset.clicked.connect(self._reset_position);row.addWidget(reset);row.addStretch();v.addLayout(row);lay.addWidget(box)
         box,v=card('名称与额度字体');form=QFormLayout();form.setSpacing(10)
-        self.font_family=QComboBox()
-        for label,family in zip(['微软雅黑 UI','微软雅黑','等线'],FAMILIES):self.font_family.addItem(label,family)
-        self.font_weight=QComboBox()
-        for label,weight in [('标准',400),('较粗',600),('粗体',700)]:self.font_weight.addItem(label,weight)
-        row=QHBoxLayout();row.addWidget(self.font_family,1);row.addWidget(self.font_weight);form.addRow('字体与粗细',row)
-        self.name_size=QSpinBox();self.name_size.setRange(10,14);self.name_size.setSuffix(' px');self.quota_size=QSpinBox();self.quota_size.setRange(10,16);self.quota_size.setSuffix(' px')
-        row=QHBoxLayout();row.addWidget(QLabel('名称'));row.addWidget(self.name_size);row.addSpacing(14);row.addWidget(QLabel('额度'));row.addWidget(self.quota_size);row.addStretch();form.addRow('字号',row);v.addLayout(form)
-        preview=QHBoxLayout();self.preview_name=QLabel('ChatGPT · 智谱 GLM');self.preview_quota=QLabel('5h 88% · 周 99%');preview.addWidget(self.preview_name);preview.addWidget(self.preview_quota);preview.addStretch();v.addLayout(preview)
-        v.addWidget(muted('任务栏与展示板共用字体设置，中英文和数字使用同一字体与粗细。'))
-        for control in [self.font_family,self.font_weight]:control.currentIndexChanged.connect(self._preview_typography)
+        def font_combo():
+            combo=QComboBox()
+            for family in FAMILIES:combo.addItem(FONT_LABELS.get(family,family),family)
+            return combo
+        def weight_combo():
+            combo=QComboBox()
+            for label,weight in [('标准',400),('较粗',600),('粗体',700)]:combo.addItem(label,weight)
+            return combo
+        self.font_family=font_combo();self.font_weight=weight_combo();self.quota_family=font_combo();self.quota_weight=weight_combo()
+        self.name_size=QSpinBox();self.name_size.setRange(10,16);self.name_size.setSuffix(' px');self.quota_size=QSpinBox();self.quota_size.setRange(10,18);self.quota_size.setSuffix(' px')
+        row=QHBoxLayout();row.addWidget(QLabel('字体'));row.addWidget(self.font_family,1);row.addSpacing(8);row.addWidget(QLabel('粗细'));row.addWidget(self.font_weight);row.addSpacing(8);row.addWidget(QLabel('字号'));row.addWidget(self.name_size);form.addRow('AI 名称',row)
+        row=QHBoxLayout();row.addWidget(QLabel('字体'));row.addWidget(self.quota_family,1);row.addSpacing(8);row.addWidget(QLabel('粗细'));row.addWidget(self.quota_weight);row.addSpacing(8);row.addWidget(QLabel('字号'));row.addWidget(self.quota_size);form.addRow('额度数字',row)
+        v.addLayout(form)
+        preset=QPushButton('应用天气小组件风格（Segoe UI Variable Text + Display）');preset.clicked.connect(self._apply_weather_preset);v.addWidget(preset)
+        preview=QHBoxLayout();self.preview_name=QLabel('ChatGPT');self.preview_quota=QLabel('5h 88% · 周 99%');preview.addWidget(self.preview_name);preview.addWidget(self.preview_quota);preview.addStretch();v.addLayout(preview)
+        v.addWidget(muted('名称与额度可分别设置字体、粗细与字号；任务栏与展示板共用这套组合。'))
+        for control in [self.font_family,self.font_weight,self.quota_family,self.quota_weight]:control.currentIndexChanged.connect(self._preview_typography)
         for control in [self.name_size,self.quota_size]:control.valueChanged.connect(self._preview_typography)
         lay.addWidget(box)
         box,v=card('自动刷新');row=QHBoxLayout();row.addWidget(QLabel('刷新间隔'));self.interval_spin=QSpinBox();self.interval_spin.setRange(1,1440);self.interval_spin.setSuffix(' 分钟');self.interval_spin.setFixedWidth(140);row.addWidget(self.interval_spin);row.addStretch();v.addLayout(row);lay.addWidget(box)
@@ -138,18 +154,34 @@ class SettingsDialog(QDialog):
         old=self.order_list.currentRow();new=old+delta
         if old>=0 and 0<=new<self.order_list.count():self.order_list.insertItem(new,self.order_list.takeItem(old));self.order_list.setCurrentRow(new)
     def _typography_value(self):
-        return typography(dict(family=self.font_family.currentData(),weight=self.font_weight.currentData(),name_size=self.name_size.value(),quota_size=self.quota_size.value()))
+        return typography(dict(family=self.font_family.currentData(),weight=self.font_weight.currentData(),name_size=self.name_size.value(),
+                               quota_family=self.quota_family.currentData(),quota_weight=self.quota_weight.currentData(),quota_size=self.quota_size.value()))
+    def _apply_weather_preset(self):
+        self.font_family.setCurrentIndex(max(0,self.font_family.findData(WEATHER_PRESET['family'])))
+        self.font_weight.setCurrentIndex(max(0,self.font_weight.findData(WEATHER_PRESET['weight'])))
+        self.name_size.setValue(WEATHER_PRESET['name_size'])
+        self.quota_family.setCurrentIndex(max(0,self.quota_family.findData(WEATHER_PRESET['quota_family'])))
+        self.quota_weight.setCurrentIndex(max(0,self.quota_weight.findData(WEATHER_PRESET['quota_weight'])))
+        self.quota_size.setValue(WEATHER_PRESET['quota_size'])
+        self._preview_typography()
     def _preview_typography(self):
         style=self._typography_value()
         self.preview_name.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['name_size']}px;font-weight:{style['weight']};")
-        self.preview_quota.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['quota_size']}px;font-weight:{style['weight']};color:#219C77;")
+        self.preview_quota.setStyleSheet(f"font-family:'{style['quota_family']}';font-size:{style['quota_size']}px;font-weight:{style['quota_weight']};color:#219C77;")
     def _load(self):
         for key,meta in PLATFORM_META.items():
             self.enable_checks[key].setChecked(self.config.is_enabled(key))
             for field,_ in meta['credential_fields']:
                 saved=bool(self.config.get_credential(key,field));self.field_inputs[key][field].setPlaceholderText('已保存，留空保留' if saved else '未配置')
             if key=='volc':self.volc_actions[key].setCurrentIndex(1 if self.config.platform_cfg(key).get('action')=='ListModelInferenceLimits' else 0)
-        style=typography(self.config._data.get('display_typography'));self.font_family.setCurrentIndex(FAMILIES.index(style['family']));self.font_weight.setCurrentIndex(self.font_weight.findData(style['weight']));self.name_size.setValue(style['name_size']);self.quota_size.setValue(style['quota_size']);self._preview_typography()
+        style=typography(self.config._data.get('display_typography'))
+        self.font_family.setCurrentIndex(max(0,self.font_family.findData(style['family'])))
+        self.font_weight.setCurrentIndex(max(0,self.font_weight.findData(style['weight'])))
+        self.name_size.setValue(style['name_size'])
+        self.quota_family.setCurrentIndex(max(0,self.quota_family.findData(style['quota_family'])))
+        self.quota_weight.setCurrentIndex(max(0,self.quota_weight.findData(style['quota_weight'])))
+        self.quota_size.setValue(style['quota_size'])
+        self._preview_typography()
         self.interval_spin.setValue(self.config.refresh_interval_minutes);self.taskbar_check.setChecked(bool(self.config._data.get('taskbar_mode',False)))
         position=self.config._data.get('taskbar_position',{});self._anchor_percent=position.get('anchorPercent',0);self.position_spin.setValue(position.get('offsetPx',0))
         for key in self.config.platform_order:
@@ -179,4 +211,8 @@ class SettingsDialog(QDialog):
             self.config.platform_order=[self.order_list.item(i).data(Qt.UserRole) for i in range(self.order_list.count())];self.config.save()
         except Exception as error:
             self.config._data=previous;QMessageBox.critical(self,'保存失败',str(error));return
-        self.accept()
+        # 保存后保持设置面板显示（不自动关闭、不最小化），立即刷新额度并给出反馈
+        self.save_status.setText('已保存并刷新额度')
+        self.saved.emit()
+        self.raise_()
+        self.activateWindow()

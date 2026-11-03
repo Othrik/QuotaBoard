@@ -9,7 +9,7 @@ Windows 桌面悬浮窗小工具，实时展示 ChatGPT / 豆包 / 智谱清言 
 | 平台 | 方式 | 说明 |
 | --- | --- | --- |
 | OpenAI | API Key | 余额查询接口 |
-| 智谱 GLM | API Key | 余额查询接口 |
+| 智谱 GLM | API Key | 连接校验走 `GET /api/paas/v4/models`；余额接口已于 2026-11 下线（`/api/paas/v4/balance` 返回 404，控制台内部余额端点不对 API Key 开放），条目改显示提示 |
 | Kimi | API Key | 余额查询接口 |
 | 火山方舟 | AK/SK | 官方签名（HMAC-SHA256）调用 GetUsageDetails |
 
@@ -89,3 +89,12 @@ light -ext WixUIExtension QuotaBoard.wixobj -o dist/QuotaBoard.msi
 - 名称与额度默认统一使用微软雅黑 UI 粗体，设置中可调整字体、粗细及字号，并预览效果。
 - 请求失败的平台立即暂停轮播，成功后自动恢复；全部失败时额度条暂时隐藏，仍按设置周期继续查询。
 - 智谱 GLM 更换为用户提供的 Z.AI 图标，智谱清言图标保持不变。
+
+
+### 1.1.32 天气小组件字体、Z.AI 图标与设置面板
+
+- 名称与额度字体可分别设置：新增「AI 名称」（默认 Segoe UI Variable Text 常规 12px）与「额度数字」（默认 Segoe UI Variable Display 较粗 15px）两组，各带字体、粗细、字号；一键「应用天气小组件风格」复刻 Windows 11 任务栏天气小组件的 Text + Display 光学尺寸组合。
+- 字体族扩展为微软雅黑 UI / 微软雅黑 / 等线 / Segoe UI Variable 全系列（Text、Display 及 Semilight、Light、Semibold 变体），任务栏额度条与展示板共用同一套组合字体。
+- 智谱 GLM 图标替换为用户提供的 `zai.svg` 渲染结果，智谱清言沿用原图标；同步更新原生任务栏组件的图标映射。
+- 设置面板不再强制置顶，也不再以悬浮窗为父窗口；点击「保存并刷新」后面板保持打开、显示保存状态并立即刷新额度，关闭需点「关闭」。
+- 智谱开放平台余额接口失效的提示更明确：Key 与域名连通正常（`/models` 可访问），余额端点为 404 时提示到控制台查看。

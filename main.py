@@ -62,8 +62,13 @@ def main() -> int:
             existing.raise_()
             existing.activateWindow()
             return
-        dlg = SettingsDialog(config, window)
+        # 独立普通窗口：不继承悬浮窗的置顶层级，避免设置面板强制盖在最上层
+        dlg = SettingsDialog(config)
+        dlg.saved.connect(lambda: (window.render(), scheduler.apply_interval(), scheduler.refresh_all()))
         window._settings_dialog = dlg
+        screen = app.primaryScreen().availableGeometry()
+        dlg.move(screen.left() + max(8, (screen.width() - dlg.width()) // 2),
+                 screen.top() + max(8, (screen.height() - dlg.height()) // 2))
         try:
             accepted = dlg.exec() == QDialog.DialogCode.Accepted
         finally:

@@ -8,7 +8,7 @@ from quotaboard.scheduler import Scheduler
 from quotaboard.ui.settings_dialog import SettingsDialog
 from quotaboard.ui.floating_window import FloatingWindow
 app=QApplication([])
-c=Config.__new__(Config);c._data={'platforms':{},'cache':{},'refresh_interval_minutes':1,'platform_order':['doubao','codex','doubao','removed']};c.save=lambda:None
+c=Config.__new__(Config);c._data={'platforms':{k:{'enabled':True} for k in ('codex','gemini','doubao')},'cache':{},'refresh_interval_minutes':1,'platform_order':['doubao','codex','doubao','removed']};c.save=lambda:None
 assert c.platform_order[:2]==['doubao','codex']
 assert len(c.platform_order)==len(PLATFORM_META)
 d=SettingsDialog(c)

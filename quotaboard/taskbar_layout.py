@@ -37,11 +37,12 @@ def make_layout(markup,options=None):
     name_height=style['name_size']+4;quota_height=style['quota_size']+4
     height=40;vertical_padding=max(1,(height-name_height-quota_height)//2);row_height=height-2*vertical_padding
     width=max(220,round(220*max(style['name_size']/12,style['quota_size']/12)))
-    weight=WEIGHTS[style['weight']]
+    name_weight=WEIGHTS[style['weight']]
+    quota_weight=WEIGHTS[style['quota_weight']]
     for part in parser.parts:
-        if part['type']=='text':part.update(fontFamily=style['family'],fontSize=style['quota_size'],fontWeight=weight,height=quota_height)
+        if part['type']=='text':part.update(fontFamily=style['quota_family'],fontSize=style['quota_size'],fontWeight=quota_weight,height=quota_height)
         else:part['width']=max(4,round(part['width']*style['quota_size']/12))
-    title=dict(type='text',bind='data.label',fontFamily=style['family'],fontSize=style['name_size'],fontWeight=weight,height=name_height,color='#FF17202B',horizontalAlignment='left')
+    title=dict(type='text',bind='data.label',fontFamily=style['family'],fontSize=style['name_size'],fontWeight=name_weight,height=name_height,color='#FF17202B',horizontalAlignment='left')
     values=dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=parser.parts)
     return dict(type='card',width=width,height=height,backgroundColor='#00000000',padding=dict(left=6,right=8,top=vertical_padding,bottom=vertical_padding),radius=0,children=[dict(type='row',gap=8,height=row_height,verticalAlignment='center',horizontalAlignment='left',children=[dict(type='image',source=dict(bind='data.icon'),width=22,height=22,verticalAlignment='center',stretch='uniform',backgroundColor='#00000000'),dict(type='column',width=width-44,height=row_height,gap=0,verticalAlignment='center',horizontalAlignment='left',children=[title,values])])])
 

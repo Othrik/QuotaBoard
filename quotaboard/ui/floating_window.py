@@ -291,11 +291,11 @@ class _Row(QFrame):
                 except (TypeError, ValueError):
                     m_pct = 0.0
                 donuts.addWidget(_Donut(m_pct, _pct_color(m_pct),
-                                        str(m.get("label", "")), font_family=style["family"], font_weight=style["weight"]))
+                                        str(m.get("label", "")), font_family=style["quota_family"], font_weight=style["quota_weight"]))
             right.addLayout(donuts)
         else:
             val = QLabel(result.display if result.ok else "—")
-            val.setStyleSheet(f"font-family:'{style['family']}';font-size:{style['quota_size']+2}px;font-weight:{style['weight']};color:{TEXT_MAIN};")
+            val.setStyleSheet(f"font-family:'{style['quota_family']}';font-size:{style['quota_size']+2}px;font-weight:{style['quota_weight']};color:{TEXT_MAIN};")
             val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             right.addWidget(val)
 

@@ -71,7 +71,7 @@ while(-not $quit) {
    if($items.Count -gt 0) {
     $item=$items[([int][math]::Floor($counter/5)%$items.Count)]
     $data.label=[string]$item.label;$data.quota=[string]$item.display
-    $names=@{codex='openai';chatgpt_plus='openai';zhipu_member='zhipu'}
+    $names=@{codex='openai';chatgpt_plus='openai';zhipu='zhipu-glm';zhipu_member='zhipu'}
     $name=[string]$item.platform;if($names.ContainsKey($name)){$name=$names[$name]}
     $icon=Join-Path $PSScriptRoot ('assets/'+$name+'-transparent.png');if(Test-Path -LiteralPath $icon){$data.icon=$icon}
     if(-not $item.ok){$data.color='#FFE45D6A'}elseif($null -ne $item.percent){$p=[double]$item.percent;$data.color=if($p -lt 30){'#FFE45D6A'}elseif($p -lt 75){'#FFE5A132'}else{'#FF27AE80'}}
