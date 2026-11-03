@@ -188,6 +188,8 @@ class SettingsDialog(QDialog):
         self.interval_spin.setSuffix(" 分钟")
         form.addRow("自动刷新间隔", self.interval_spin)
         general_layout.addLayout(form)
+        self.taskbar_check = QCheckBox("任务栏左下角常驻（独立额度条，位于任务栏上方）")
+        general_layout.addWidget(self.taskbar_check)
 
         general_layout.addWidget(QLabel("AI 显示顺序（拖动排序，保存后生效）"))
         self.order_list = QListWidget()
@@ -237,6 +239,7 @@ class SettingsDialog(QDialog):
                     1 if action == "ListModelInferenceLimits" else 0)
 
         self.interval_spin.setValue(self.config.refresh_interval_minutes)
+        self.taskbar_check.setChecked(bool(self.config._data.get("taskbar_mode", False)))
         self.order_list.clear()
         for key in self.config.platform_order:
             item = QListWidgetItem(PLATFORM_META[key]["label"])
@@ -278,6 +281,7 @@ class SettingsDialog(QDialog):
                     if self.volc_actions[key].currentIndex() == 1
                     else "GetUsageDetails")
 
+        self.config._data["taskbar_mode"] = self.taskbar_check.isChecked()
         self.config.refresh_interval_minutes = self.interval_spin.value()
         self.config.platform_order = [self.order_list.item(i).data(Qt.ItemDataRole.UserRole)
                                       for i in range(self.order_list.count())]

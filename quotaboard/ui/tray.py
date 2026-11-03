@@ -95,5 +95,6 @@ class TrayIcon(QSystemTrayIcon):
         from PySide6.QtWidgets import QDialog
         dlg = SettingsDialog(self.config, self.window)
         if dlg.exec() == QDialog.DialogCode.Accepted:
+            self.window.render()
             self.scheduler.apply_interval()
             self.scheduler.refresh_all()

@@ -430,7 +430,7 @@ class FloatingWindow(QWidget):
         super().__init__()
         self.config = config
         self.scheduler = scheduler
-        self._dock_edge = None
+        self._dock_edge = "taskbar" if config._data.get("taskbar_mode", False) else None
         self._dock_rows = []
         self.expanded = True
         self._drag_pos: Optional[QPoint] = None
@@ -457,6 +457,10 @@ class FloatingWindow(QWidget):
         self.apply_shadow()
 
         self.scheduler.refreshed.connect(self.on_results)
+        self._anchor_timer = QTimer(self)
+        self._anchor_timer.setInterval(1000)
+        self._anchor_timer.timeout.connect(self._keep_taskbar_position)
+        self._anchor_timer.start()
 
     # ---------- UI ----------
     def _build_ui(self) -> None:
@@ -534,6 +538,10 @@ class FloatingWindow(QWidget):
         self.render()
 
     def render(self) -> None:
+        if self.config._data.get("taskbar_mode", False):
+            self._dock_edge = "taskbar"
+        elif self._dock_edge == "taskbar":
+            self._dock_edge = None
         # 清空旧行
         while self.body.count():
             item = self.body.takeAt(0)
@@ -636,7 +644,7 @@ class FloatingWindow(QWidget):
             if item.widget():
                 item.widget().hide()
                 item.widget().deleteLater()
-        horizontal = self._dock_edge in ("top", "bottom")
+        horizontal = self._dock_edge in ("top", "bottom", "taskbar")
         self.dock_layout.setDirection(QBoxLayout.Direction.LeftToRight if horizontal else QBoxLayout.Direction.TopToBottom)
         for result in self._dock_rows:
             cell = QWidget()
@@ -672,7 +680,8 @@ class FloatingWindow(QWidget):
         hint = self.dock_content.sizeHint()
         geo = self.screen().availableGeometry()
         if horizontal:
-            self.setFixedSize(min(geo.width(), hint.width() + 4), 36)
+            limit = min(360, geo.width() - 16) if self._dock_edge == "taskbar" else geo.width()
+            self.setFixedSize(min(limit, hint.width() + 4), 54 if hint.width() + 4 > limit else 36)
         else:
             self.setFixedSize(hint.width() + 4, min(geo.height(), hint.height() + 4))
         self._anchor_dock()
@@ -685,7 +694,22 @@ class FloatingWindow(QWidget):
         if self._dock_edge == "bottom": y = geo.bottom() + 1 - self.height()
         if self._dock_edge == "left": x = geo.left()
         if self._dock_edge == "right": x = geo.right() + 1 - self.width()
+        if self._dock_edge == "taskbar":
+            x = geo.left() + 8
+            y = geo.bottom() + 1 - self.height() - 6
         self.move(x, y)
+
+    def _keep_taskbar_position(self):
+        if self._dock_edge == "taskbar" and self.isVisible():
+            self._anchor_dock()
+
+    def set_taskbar_mode(self, enabled):
+        self.config._data["taskbar_mode"] = bool(enabled)
+        self.config.save()
+        self._dock_edge = "taskbar" if enabled else None
+        self.expanded = True
+        self.render()
+        self.show()
 
     # ---------- 折叠/展开 ----------
     def toggle(self) -> None:
@@ -703,6 +727,8 @@ class FloatingWindow(QWidget):
 
     def mouseMoveEvent(self, event) -> None:
         if self._drag_pos is not None and event.buttons() & Qt.MouseButton.LeftButton:
+            if self._dock_edge == "taskbar":
+                return
             if self._dock_edge:
                 self._dock_edge = None
                 self.expanded = True
@@ -770,6 +796,11 @@ class FloatingWindow(QWidget):
     def contextMenuEvent(self, event) -> None:
         self._hover_popup.hide()
         menu = QMenu(self)
+        taskbar = QAction("任务栏左下角常驻", menu)
+        taskbar.setCheckable(True)
+        taskbar.setChecked(self._dock_edge == "taskbar")
+        taskbar.toggled.connect(self.set_taskbar_mode)
+        menu.addAction(taskbar)
         act_refresh = QAction("立即刷新", self)
         act_refresh.triggered.connect(self.refresh_requested)
         act_settings = QAction("设置…", self)

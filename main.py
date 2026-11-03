@@ -65,7 +65,10 @@ def main() -> int:
     screen = app.primaryScreen().availableGeometry()
     window.adjustSize()
     window.move(screen.right() - window.width() - 28, screen.top() + 40)
+    window.render()
     window.show()
+    if window._dock_edge == "taskbar":
+        window._anchor_dock()
 
     # 启动即拉取一次，随后按间隔自动刷新
     scheduler.start()

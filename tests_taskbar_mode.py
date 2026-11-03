@@ -1,0 +1,13 @@
+import os
+os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
+from PySide6.QtWidgets import QApplication
+from quotaboard.config import Config
+from quotaboard.model import QuotaResult
+from quotaboard.scheduler import Scheduler
+from quotaboard.ui.floating_window import FloatingWindow
+app=QApplication([]);c=Config.__new__(Config);c._data={'platforms':{},'cache':{}};c.save=lambda:None
+w=FloatingWindow(c,Scheduler(c));w.on_results({'codex':QuotaResult(platform='codex',label='ChatGPT',display='5h 80% · 周 40%')});w.set_taskbar_mode(True);app.processEvents()
+g=w.screen().availableGeometry();assert w.x()==g.left()+8;assert w.y()==g.bottom()+1-w.height()-6;assert w.width()<=360
+w.move(100,100);w._keep_taskbar_position();assert w.x()==g.left()+8
+assert c._data['taskbar_mode'];w.set_taskbar_mode(False);assert w._dock_edge is None and w.width()==380
+print('Taskbar placement, anchoring, persistence and disable passed')
