@@ -15,7 +15,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from quotaboard.config import Config, decrypt_secret, encrypt_secret  # noqa: E402
 
@@ -89,7 +89,7 @@ def test_codex_provider() -> None:
     # 2) 用模拟 app-server 验证完整协议链路与解析
     import sys
     from pathlib import Path
-    fake = str(Path(__file__).resolve().parent / "tools" / "fake_codex_server.py")
+    fake = str(Path(__file__).resolve().parent.parent / "tools" / "fake_codex_server.py")
     python = sys.executable
     provider = PROVIDERS["codex"]({"cmd": [python, fake]})
     result = provider.fetch()

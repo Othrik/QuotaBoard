@@ -28,6 +28,7 @@ class TaskbarController(QObject):
         self.root=Path(config.path).parent/'Taskbar';self.data=self.root/'Data'
         self.process=QProcess(self);self.process.finished.connect(self._finished)
         self.next_start=0;self.failures=0;self.stopping=False;self.prepared=False;self._last_content=None
+        self._last_catalog=None;self._last_heartbeat=0.0
         self.timer=QTimer(self);self.timer.setInterval(1000);self.timer.timeout.connect(self.tick);self.timer.start()
         self.command_timer=QTimer(self);self.command_timer.setInterval(100);self.command_timer.timeout.connect(self.read_commands);self.command_timer.start()
     def set_rows(self,rows):
@@ -52,8 +53,13 @@ class TaskbarController(QObject):
             row=playable[(int(time.monotonic())//5)%len(playable)] if playable else QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
             layout=make_layout(_dock_quota_text(row),self.config._data.get('display_typography'))
             details=make_details(row)
-            entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=layout['width'],height=layout['height'],layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='hover',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
-            write_json(self.data/'Runtime/WidgetCatalog.json',dict(schemaVersion=2,widgets=[entry]))
+            entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=layout['width'],height=layout['height'],layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='click',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
+            # 目录与状态只在内容变化时落盘：任务栏组件监听这些文件，
+            # 无意义的重复写入会让它在悬停/展开时反复重建浮层（表现为小窗连闪）。
+            catalog=dict(schemaVersion=2,widgets=[entry])
+            if catalog != self._last_catalog:
+                write_json(self.data/'Runtime/WidgetCatalog.json',catalog)
+                self._last_catalog=catalog
             write_json(self.data/'config.json',dict(configVersion=3,layout=dict(mode='row'),widgets=[dict(id=WIDGET_ID,widgetId=WIDGET_ID,instanceId=WIDGET_ID,enabled=bool(playable),order=0,position=self.config._data.get("taskbar_position",dict(anchorPercent=0,offsetPx=0)),settings={})],rotation=dict(intervalSeconds=5,widgetIds=[WIDGET_ID],instanceIds=[WIDGET_ID])))
             content=dict(platform=row.platform,label=row.label,icon=_resource_path('assets/logo/'+PLATFORM_LOGO.get(row.platform,'openai.png')))
             content.update({f'line{i}':details[i] if i<len(details) else '' for i in range(11)})
@@ -61,7 +67,11 @@ class TaskbarController(QObject):
                 self.sequence+=1
                 write_json(self.data/'State'/f'{WIDGET_ID}.json',dict(schemaVersion=2,widgetId=WIDGET_ID,instanceId=WIDGET_ID,packageVersion=__version__,sequence=self.sequence,status='ok',data=content,settings={}))
                 self._last_content=content
-            write_json(self.data/'managed-control.json',dict(enabled=True,owner=os.getpid(),heartbeat=time.time()))
+            # 心跳每 10 秒落盘一次即可判定存活；每秒重写会让组件反复重载。
+            now=time.time()
+            if now-self._last_heartbeat>=10:
+                write_json(self.data/'managed-control.json',dict(enabled=True,owner=os.getpid(),heartbeat=now))
+                self._last_heartbeat=now
             if self.process.state()==QProcess.NotRunning and time.monotonic()>=self.next_start:
                 self.stopping=False
                 self.process.setProgram(str(self.root/'QuotaBoard.TaskbarHost.exe'))

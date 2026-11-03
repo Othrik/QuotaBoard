@@ -10,7 +10,7 @@ from pathlib import Path
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from quotaboard.config import Config  # noqa: E402
 from quotaboard.scheduler import Scheduler  # noqa: E402
