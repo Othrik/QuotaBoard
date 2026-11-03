@@ -562,6 +562,9 @@ class FloatingWindow(QWidget):
                     except TypeError:
                         pass
 
+        from ..taskbar_snapshot import export_snapshot
+        export_snapshot(self.config, rows)
+
         if not rows:
             tip = QLabel("尚未配置平台：右键 → 设置")
             tip.setStyleSheet(f"font-size: 13px; color: {TEXT_SUB}; padding: 10px 14px;")

@@ -1,0 +1,106 @@
+{
+  "type": "card",
+  "width": 360,
+  "height": 420,
+  "padding": 16,
+  "radius": 12,
+  "backgroundColor": "#FFFFFFFF",
+  "children": [
+    {
+      "type": "column",
+      "gap": 8,
+      "children": [
+        {
+          "type": "text",
+          "text": "QuotaBoard · AI 额度",
+          "fontSize": 16,
+          "fontWeight": "semibold",
+          "color": "#FF111111"
+        },
+        {
+          "type": "text",
+          "bind": "data.line0",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line1",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line2",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line3",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line4",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line5",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line6",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line7",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line8",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line9",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.line10",
+          "fontSize": 11,
+          "height": 24,
+          "color": "#FF222222"
+        },
+        {
+          "type": "text",
+          "bind": "data.status",
+          "fontSize": 10,
+          "color": "#FF666666"
+        }
+      ]
+    }
+  ]
+}

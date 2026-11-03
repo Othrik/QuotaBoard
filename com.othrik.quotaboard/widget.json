@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 4,
+  "id": "com.othrik.quotaboard",
+  "version": "1.0.0",
+  "minHostVersion": "0.5.4",
+  "displayName": "QuotaBoard",
+  "description": "任务栏内部显示本机 QuotaBoard 额度，每5秒轮换AI，悬停查看全部额度。",
+  "author": {
+    "name": "Othrik",
+    "website": "https://github.com/Othrik/QuotaBoard"
+  },
+  "category": "Productivity",
+  "size": {
+    "width": 220,
+    "height": 40
+  },
+  "renderer": {
+    "type": "native",
+    "entry": "compact.json",
+    "expandedEntry": "expanded.json",
+    "expandedSize": {
+      "width": 360,
+      "height": 420
+    },
+    "activation": "hover"
+  },
+  "runtime": {
+    "type": "process",
+    "entry": "provider.ps1",
+    "protocol": "json-lines-v1",
+    "lifetime": "persistent",
+    "runAs": "user",
+    "workingDirectory": "package"
+  },
+  "permissions": {
+    "required": [
+      {
+        "id": "system.fullAccess",
+        "reason": "PowerShell 桥接程序以当前用户运行，仅读取本机 QuotaBoard 导出的无凭据额度快照，不读取配置、Cookie或密钥，不请求网络。"
+      },
+      {
+        "id": "filesystem.read",
+        "scope": "%APPDATA%/QuotaBoard/taskbar-snapshot.json",
+        "reason": "读取仅含额度、平台名和刷新时间的快照。"
+      }
+    ],
+    "optional": []
+  },
+  "supportsMultipleInstances": false,
+  "settings": []
+}
