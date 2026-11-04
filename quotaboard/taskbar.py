@@ -8,6 +8,7 @@ from .taskbar_layout import make_layout,make_details,expanded_layout,detail_heig
 from . import __version__
 from .balance_display import MONETARY_PLATFORMS
 from .rotation import rotation_seconds
+from .deepseek_period import split_period_label
 
 WIDGET_ID='com.othrik.quotaboard'
 
@@ -99,7 +100,9 @@ class TaskbarController(QObject):
             from .ui.floating_window import _dock_quota_text,_resource_path,PLATFORM_LOGO
             playable=rotation_candidates(self.rows,self.config._data.get('platforms'))
             row=self.rotation_row(playable) or QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
-            layout=make_layout(taskbar_quota_text(row,self.config._data.get('reset_display','absolute')),self.config._data.get('display_typography'),taskbar_label(row))
+            label_full=taskbar_label(row)
+            base_label,badge=split_period_label(label_full,row.platform)
+            layout=make_layout(taskbar_quota_text(row,self.config._data.get('reset_display','absolute')),self.config._data.get('display_typography'),base_label,badge=badge)
             change_token=self.presentation_change(row)
             details=make_details(row)
             entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=layout['width'],height=layout['height'],layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='click',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
@@ -110,7 +113,7 @@ class TaskbarController(QObject):
                 write_json(self.data/'Runtime/WidgetCatalog.json',catalog)
                 self._last_catalog=catalog
             write_json(self.data/'config.json',dict(configVersion=3,layout=dict(mode='row'),widgets=[dict(id=WIDGET_ID,widgetId=WIDGET_ID,instanceId=WIDGET_ID,enabled=bool(playable),order=0,position=self.config._data.get("taskbar_position",dict(anchorPercent=0,offsetPx=0)),settings={})],rotation=dict(intervalSeconds=rotation_seconds(self.config._data.get('taskbar_rotation_seconds',5)),widgetIds=[WIDGET_ID],instanceIds=[WIDGET_ID])))
-            content=dict(platform=row.platform,label=taskbar_label(row),icon=_resource_path('assets/logo/'+PLATFORM_LOGO.get(row.platform,'openai.png')))
+            content=dict(platform=row.platform,label=label_full,icon=_resource_path('assets/logo/'+PLATFORM_LOGO.get(row.platform,'openai.png')))
             content['changeToken']=change_token
             content['visualVersion']=hashlib.sha256(json.dumps([layout,content],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
             content.update({f'line{i}':details[i] if i<len(details) else '' for i in range(11)})

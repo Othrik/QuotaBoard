@@ -32,7 +32,7 @@ class QuotaMarkup(HTMLParser):
             else:
                 self.parts.append(dict(type='text',text=token,color=color,fontWeight=weight,fontSize=12,height=18,verticalAlignment='center'))
 
-def make_layout(markup,options=None,title_text=None):
+def make_layout(markup,options=None,title_text=None,badge=None):
     parser=QuotaMarkup();parser.feed(markup);style=typography(options)
     name_height=style['name_size']+4;quota_height=style['quota_size']+4
     height=max(40,name_height+quota_height+2);vertical_padding=max(1,(height-name_height-quota_height)//2);row_height=height-2*vertical_padding
@@ -53,6 +53,15 @@ def make_layout(markup,options=None,title_text=None):
             if part['type']=='spacer':pieces.append(part);continue
             for run,script in script_runs(part['text']):
                 pieces.append(dict(part,text=run,fontFamily=style['cjk_family'] if script=='cjk' else style['family'],fontSize=style['name_size'],fontWeight=name_weight,height=name_height))
+        if badge:
+            from .deepseek_period import PERIOD_BADGES
+            badge_style=PERIOD_BADGES.get(badge,PERIOD_BADGES['时段待确认'])
+            pieces.append(dict(type='spacer',width=4,height=1))
+            pieces.append(dict(type='card',backgroundColor=badge_style['background'],radius=6,
+                               padding=dict(left=5,right=5,top=1,bottom=1),verticalAlignment='center',
+                               children=[dict(type='text',text=badge,color=badge_style['text'],
+                                              fontFamily=style['cjk_family'],fontSize=style['name_size'],
+                                              fontWeight=name_weight,height=max(8,name_height-2),verticalAlignment='center')]))
         title=dict(type='row',gap=0,height=name_height,horizontalAlignment='left',children=pieces)
     values=dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=parser.parts)
     return dict(type='card',width=width,height=height,backgroundColor='#00000000',padding=dict(left=6,right=8,top=vertical_padding,bottom=vertical_padding),radius=0,children=[dict(type='row',gap=8,height=row_height,verticalAlignment='center',horizontalAlignment='left',children=[dict(type='image',source=dict(bind='data.icon'),width=22,height=22,verticalAlignment='center',stretch='uniform',backgroundColor='#00000000'),dict(type='column',width=width-44,height=row_height,gap=0,verticalAlignment='center',horizontalAlignment='left',children=[title,values])])])

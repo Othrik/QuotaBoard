@@ -23,3 +23,20 @@ def pricing_period(now=None):
 
 def display_name(label,platform,now=None):
     return label+(' · '+pricing_period(now) if platform=='deepseek' else '')
+
+# 时段徽标配色：彩色文字 + 浅色强调背景（ARGB，前两位为不透明度）。
+PERIOD_BADGES={
+    '高峰':{'text':'#FFDC2626','background':'#FFFEE2E2'},
+    '空闲':{'text':'#FF16A34A','background':'#FFDCFCE7'},
+    '时段待确认':{'text':'#FF64748B','background':'#FFF1F5F9'},
+}
+
+def split_period_label(label,platform):
+    """拆出计费时段后缀，返回 (基础名称, 时段徽标文本或 None)。"""
+    if platform!='deepseek':
+        return label,None
+    for badge in PERIOD_BADGES:
+        suffix=' · '+badge
+        if label.endswith(suffix):
+            return label[:-len(suffix)],badge
+    return label,None
