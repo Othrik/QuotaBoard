@@ -58,6 +58,14 @@ if True:
  assert catalog['widgets'][0]['renderer']=='native' and state['data']['label']=='Gemini'
  assert '缓存' not in state['data']['label']
  assert all(word not in json.dumps(state) for word in ['api_key','cookie','credential'])
+ from dataclasses import replace
+ refreshed=replace(case,updated_at='2099-01-01 00:00:00')
+ controller.set_rows([refreshed])
+ refreshed_state=json.loads(state_path.read_text('utf8'))
+ assert refreshed_state['data']['visualVersion']==state['data']['visualVersion']
+ assert refreshed_state['data']['changeToken']=='0'
+ assert refreshed_state['data']!=state['data'], 'Details must still receive refresh time updates'
+
  opened=[]
  def reenter_settings():
   opened.append(True);controller.read_commands()

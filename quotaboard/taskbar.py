@@ -46,6 +46,7 @@ class TaskbarController(QObject):
         self.next_start=0;self.failures=0;self.stopping=False;self.prepared=False;self._last_content=None
         self._last_catalog=None;self._last_heartbeat=0.0
         self._rotation_platform=None;self._rotation_deadline=0;self._rotation_interval=None;self._rotation_keys=()
+        self._aired_quotas={};self._change_token=0
         self.timer=QTimer(self);self.timer.setInterval(1000);self.timer.timeout.connect(self.tick);self.timer.start()
         self.command_timer=QTimer(self);self.command_timer.setInterval(100);self.command_timer.timeout.connect(self.read_commands);self.command_timer.start()
     def set_rows(self,rows):
@@ -60,11 +61,25 @@ class TaskbarController(QObject):
             self._rotation_platform=keys[0];self._rotation_deadline=now+interval
         elif interval!=self._rotation_interval or keys!=self._rotation_keys:
             self._rotation_deadline=now+interval
+        elif len(keys)==1:
+            self._rotation_deadline=float('inf')
         elif now>=self._rotation_deadline:
             self._rotation_platform=keys[(keys.index(self._rotation_platform)+1)%len(keys)]
             self._rotation_deadline=now+interval
+        if len(keys)==1:self._rotation_deadline=float('inf')
         self._rotation_interval=interval;self._rotation_keys=keys
         return next(row for row in rows if row.platform==self._rotation_platform)
+    def presentation_change(self,row):
+        # Compare successful values to the last frame actually aired for this AI.
+        # Refresh timestamps and locally ticking countdown text are not quota changes.
+        if row.platform and row.ok:
+            signature=json.dumps([row.display,row.available,row.percent,row.total,row.used,
+                row.unit,row.metrics,row.account_available,row.subscription_plan,
+                row.subscription_expires_at],ensure_ascii=False,sort_keys=True)
+            previous=self._aired_quotas.get(row.platform)
+            if previous is not None and previous!=signature:self._change_token+=1
+            self._aired_quotas[row.platform]=signature
+        return str(self._change_token)
     def prepare(self):
         from .ui.floating_window import _resource_path
         source=Path(_resource_path('assets/taskbar/QuotaBoard.TaskbarHost.exe'))
@@ -84,6 +99,7 @@ class TaskbarController(QObject):
             playable=rotation_candidates(self.rows,self.config._data.get('platforms'))
             row=self.rotation_row(playable) or QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
             layout=make_layout(taskbar_quota_text(row,self.config._data.get('reset_display','absolute')),self.config._data.get('display_typography'),taskbar_label(row))
+            change_token=self.presentation_change(row)
             details=make_details(row)
             entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=layout['width'],height=layout['height'],layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='click',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
             # 目录与状态只在内容变化时落盘：任务栏组件监听这些文件，
@@ -94,6 +110,8 @@ class TaskbarController(QObject):
                 self._last_catalog=catalog
             write_json(self.data/'config.json',dict(configVersion=3,layout=dict(mode='row'),widgets=[dict(id=WIDGET_ID,widgetId=WIDGET_ID,instanceId=WIDGET_ID,enabled=bool(playable),order=0,position=self.config._data.get("taskbar_position",dict(anchorPercent=0,offsetPx=0)),settings={})],rotation=dict(intervalSeconds=rotation_seconds(self.config._data.get('taskbar_rotation_seconds',5)),widgetIds=[WIDGET_ID],instanceIds=[WIDGET_ID])))
             content=dict(platform=row.platform,label=taskbar_label(row),icon=_resource_path('assets/logo/'+PLATFORM_LOGO.get(row.platform,'openai.png')))
+            content['changeToken']=change_token
+            content['visualVersion']=hashlib.sha256(json.dumps([layout,content],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
             content.update({f'line{i}':details[i] if i<len(details) else '' for i in range(11)})
             if content != self._last_content:
                 self.sequence+=1
