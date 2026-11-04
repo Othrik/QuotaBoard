@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [fix/taskbar-image-stream]
-    paths: ['tools/patch_taskbar_images.py', 'tools/patch_taskbar_managed.py', 'tools/patch_taskbar_popup.py', '.github/workflows/taskbar-image-fix.yml']
+    paths: ['tools/patch_taskbar_images.py', 'tools/patch_taskbar_managed.py', 'tools/patch_taskbar_popup.py', 'tools/patch_taskbar_animation.py', '.github/workflows/taskbar-image-fix.yml']
 concurrency:
   group: taskbar-build-${{ github.ref }}
   cancel-in-progress: true
@@ -22,6 +22,7 @@ jobs:
           python tools/patch_taskbar_images.py upstream
           python tools/patch_taskbar_managed.py upstream
           python tools/patch_taskbar_popup.py upstream
+          python tools/patch_taskbar_animation.py upstream
       - name: Build native hook
         shell: pwsh
         run: |
