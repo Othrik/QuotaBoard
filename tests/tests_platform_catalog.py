@@ -20,7 +20,8 @@ expected={'deepseek':'DeepSeek开放平台','zhipu':'智谱开放平台'}
 for key,title in expected.items():
     assert PLATFORM_META[key]['label']==title and PROVIDERS[key].label==title
     assert config.get_cache(key)['label']==title
-    assert taskbar_label(QuotaResult(key,'old label','¥10'))==title
+    from quotaboard.deepseek_period import display_name
+    assert taskbar_label(QuotaResult(key,'old label','¥10'))==display_name(title,key)
 for key in ('openai','kimi','volc'):
     assert key not in PLATFORM_META and key not in PROVIDERS and key not in config.platform_order
     assert not config.is_enabled(key)

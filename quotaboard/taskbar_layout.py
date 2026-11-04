@@ -79,6 +79,9 @@ def make_details(result):
         if result.sub_note:lines.append('说明：'+result.sub_note)
     if result.ok:
         lines.extend(str(item.get('label',''))+'：'+str(item.get('value','')) for item in (result.details or []))
+    if result.platform=='deepseek':
+        from .deepseek_period import pricing_period
+        lines.append('计费时段：'+pricing_period())
     lines.append('刷新时间：'+result.updated_at)
     return [line for line in lines if line][:11]
 

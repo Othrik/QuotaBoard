@@ -14,11 +14,12 @@ WIDGET_ID='com.othrik.quotaboard'
 def taskbar_label(result):
     plan = ' '.join(str(result.subscription_plan or '').split())
     label=PLATFORM_META.get(result.platform,{}).get('label',result.label)
-    return label + (' · ' + plan[:24] if plan else '')
+    from .deepseek_period import display_name
+    return display_name(label,result.platform) + (' · ' + plan[:24] if plan else '')
 
 def taskbar_quota_text(result,reset_mode='absolute'):
     from .ui.floating_window import _dock_quota_text
-    text=_dock_quota_text(result,reset_mode=reset_mode)
+    text=_dock_quota_text(result,reset_mode=reset_mode,show_period=False)
     if result.ok and result.platform in MONETARY_PLATFORMS and not result.display.startswith('余额'):
         return '余额 '+text
     return text

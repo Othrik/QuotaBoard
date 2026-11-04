@@ -1,7 +1,7 @@
 """A persistent quota overview; preferences live behind its Settings button."""
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QFrame,
     QGridLayout, QHBoxLayout, QLabel, QLineEdit, QProgressBar, QPushButton,
     QScrollArea, QVBoxLayout, QWidget, QMessageBox)
@@ -73,6 +73,15 @@ class QuotaCard(QFrame):
         title = label(PLATFORM_META[key]['label'])
         title.setStyleSheet('font-size:16px;font-weight:700;')
         header.addWidget(title)
+        if key=='deepseek':
+            from ..deepseek_period import pricing_period,RULE
+            self.period_badge=label(pricing_period())
+            self.period_badge.setStyleSheet('font-size:11px;font-weight:600;color:#56708F;')
+            self.period_badge.setToolTip(RULE)
+            header.addWidget(self.period_badge)
+            self.period_timer=QTimer(self);self.period_timer.setInterval(1000)
+            self.period_timer.timeout.connect(lambda: self.period_badge.setText(pricing_period()))
+            self.period_timer.start()
         header.addStretch()
         self.status = label()
         header.addWidget(self.status)
@@ -148,6 +157,7 @@ class QuotaCard(QFrame):
         self.floating_check.setChecked(floating_enabled)
         self.floating_check.setEnabled(enabled)
         self.floating_check.blockSignals(False)
+        if self.key=='deepseek':self.period_badge.setVisible(enabled)
         success = enabled and result is not None and result.ok
         self.status.setText('未启用' if not enabled else '等待刷新' if result is None else '已更新' if success else '请求失败')
         self.status.setStyleSheet('font-size:11px;color:' + ('#18966C' if success else '#D85E64' if enabled and result else '#8B98AA') + ';')

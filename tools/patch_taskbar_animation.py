@@ -43,7 +43,10 @@ s=s.replace(old,'''        static thread_local std::unordered_map<std::wstring, 
                     Storyboard::SetTarget(rise, transform);
                     Storyboard::SetTargetProperty(rise, L"Y");
                     storyboard.Children().Append(rise);
-                    compact.as<wux::FrameworkElement>().Loaded([storyboard](auto const&, auto const&) { storyboard.Begin(); });
+                    compact.as<wux::FrameworkElement>().Loaded([storyboard](auto const& sender, auto const&) {
+                        try { storyboard.Begin(); }
+                        catch (...) { sender.template as<wux::UIElement>().Opacity(1.0); }
+                    });
                 }
             } catch (...) { compact.Opacity(1.0); }
         }''')

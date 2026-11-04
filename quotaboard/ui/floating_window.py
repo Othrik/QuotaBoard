@@ -257,11 +257,15 @@ class _Row(QFrame):
         left.setSpacing(3)
         left.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         style = typography(typography_options,floating=True)
-        name = QLabel(result.label)
+        from ..deepseek_period import display_name
+        shown_name=display_name(result.label,result.platform)
+        name = QLabel(shown_name)
+        name.setProperty('platformKey',result.platform)
+        name.setProperty('baseName',result.label)
         name.setObjectName('platformName')
-        name.setProperty('plainText',result.label)
+        name.setProperty('plainText',shown_name)
         name.setTextFormat(Qt.TextFormat.RichText)
-        name.setText(mixed_text(result.label,style,'name'))
+        name.setText(mixed_text(shown_name,style,'name'))
         name.setStyleSheet(f"color:{TEXT_MAIN};")
         sub = result.updated_at.rsplit(" ", 1)[-1]
         if result.error:
@@ -337,7 +341,10 @@ class _Row(QFrame):
         self.setToolTip(tip)
 
 
-def _dock_quota_text(result: QuotaResult, font_weight: int = 700, reset_mode='absolute', now=None) -> str:
+def _dock_quota_text(result: QuotaResult, font_weight: int = 700, reset_mode='absolute', now=None, show_period=True) -> str:
+    if result.platform=='deepseek' and show_period:
+        from ..deepseek_period import pricing_period
+        return _dock_quota_text(result,font_weight,reset_mode,now,False)+' · '+pricing_period(now)
     def red(text):
         return f'<span style="color:{C_RED}; font-weight:{font_weight}">{escape(text)}</span>'
     def period(text):
@@ -839,10 +846,18 @@ class FloatingWindow(QWidget):
         self.move(x, y)
 
     def _keep_taskbar_position(self):
-        if self._dock_edge and self.isVisible() and self.config.get('reset_display')=='countdown':
+        if self.isVisible():
+            from ..deepseek_period import display_name
+            for name in self.findChildren(QLabel,'platformName'):
+                if name.property('platformKey')=='deepseek':
+                    title=display_name(name.property('baseName'),'deepseek')
+                    if name.property('plainText')!=title:
+                        name.setProperty('plainText',title)
+                        name.setText(mixed_text(title,floating_typography(self.config._data),'name'))
+        if self._dock_edge and self.isVisible():
             style=floating_typography(self.config._data);changed=False
             for result,value in self._dock_value_labels:
-                text=restyle_markup(_dock_quota_text(result,font_weight=style['quota_weight'],reset_mode='countdown'),style,'quota')
+                text=restyle_markup(_dock_quota_text(result,font_weight=style['quota_weight'],reset_mode=self.config.get('reset_display','absolute')),style,'quota')
                 if value.text()!=text:value.setText(text);changed=True
             if changed:self._fit_dock()
         if self._dock_edge == "taskbar" and self.isVisible():
