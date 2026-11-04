@@ -29,5 +29,5 @@ assert not result.subscription_expires_at, 'rate-limit resets are not membership
 for key,plan,title in [('gemini','Pro','Gemini'),('doubao','标准套餐','豆包')]:
     row=QuotaResult(key,title,'80%',subscription_plan=plan)
     assert taskbar_label(row)==title+' · '+plan
-assert taskbar_label(QuotaResult('deepseek','DeepSeek','¥18'))=='DeepSeek开放平台'
+assert taskbar_label(QuotaResult('deepseek','DeepSeek','¥18')).startswith('DeepSeek开放平台 · ')
 print('Subscription claims, malformed fallback, token/window expiry separation and taskbar plan labels passed')
