@@ -63,7 +63,7 @@ if True:
  controller.set_rows([refreshed])
  refreshed_state=json.loads(state_path.read_text('utf8'))
  assert refreshed_state['data']['visualVersion']==state['data']['visualVersion']
- assert refreshed_state['data']['changeToken']=='0'
+ assert 'changeToken' not in refreshed_state['data']
  assert refreshed_state['data']!=state['data'], 'Details must still receive refresh time updates'
 
  opened=[]

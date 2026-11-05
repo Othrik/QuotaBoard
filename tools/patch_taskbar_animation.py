@@ -1,4 +1,4 @@
-"""Animate real quota changes; retain the native tree on detail-only refreshes."""
+"""Cross-fade platform rotations; keep same-platform data updates motionless."""
 from pathlib import Path
 import sys
 p=Path(sys.argv[1])/'src/native/taskbar-hook/taskbar_widgets_hook.cpp'
@@ -7,48 +7,72 @@ s=s.replace('#include <winrt/Windows.UI.Xaml.Media.h>', '#include <winrt/Windows
 old='        auto compact = BuildDynamicElement(definition->layout, context, &instance);'
 assert s.count(old)==1
 s=s.replace(old,'''        static thread_local std::unordered_map<std::wstring, std::wstring> visualVersions;
-        static thread_local std::unordered_map<std::wstring, std::wstring> changeTokens;
+        static thread_local std::unordered_map<std::wstring, std::wstring> displayedPlatforms;
         auto data = context.GetNamedObject(L"data");
         const auto visual = JsonString(data, L"visualVersion", L"");
-        const auto token = JsonString(data, L"changeToken", L"0");
+        const auto platform = JsonString(data, L"platform", L"");
         const bool hadFrame = panel.Child() != nullptr;
         if (!visual.empty() && hadFrame && visualVersions[instance.instanceId] == visual) {
             g_quotaDisplayedFrames[instance.instanceId] = QuotaDisplayedFrame{
                 context, definition->expandedLayout, definition->expandedWidth, definition->expandedHeight};
             return;
         }
-        const bool animate = hadFrame && token != L"0" &&
-            changeTokens.count(instance.instanceId) && changeTokens[instance.instanceId] != token;
+        const bool platformChanged = hadFrame && !platform.empty() &&
+            displayedPlatforms.count(instance.instanceId) &&
+            displayedPlatforms[instance.instanceId] != platform;
         visualVersions[instance.instanceId] = visual;
-        changeTokens[instance.instanceId] = token;
+        displayedPlatforms[instance.instanceId] = platform;
         auto compact = BuildDynamicElement(definition->layout, context, &instance);
-        // Let XAML own this short, finite animation; no polling, extra windows
-        // or persistent highlights. Respect Windows' animation accessibility setting.
-        if (animate) {
-            try {
-                if (winrt::Windows::UI::ViewManagement::UISettings().AnimationsEnabled()) {
-                    using namespace winrt::Windows::UI::Xaml::Media::Animation;
-                    Storyboard storyboard;
-                    DoubleAnimation fade;
-                    fade.From(0.45); fade.To(1.0);
-                    fade.Duration(wux::DurationHelper::FromTimeSpan(std::chrono::milliseconds(550)));
-                    Storyboard::SetTarget(fade, compact);
-                    Storyboard::SetTargetProperty(fade, L"Opacity");
-                    storyboard.Children().Append(fade);
-                    wuxm::TranslateTransform transform;
-                    compact.RenderTransform(transform);
-                    DoubleAnimation rise;
-                    rise.From(3.0); rise.To(0.0);
-                    rise.Duration(wux::DurationHelper::FromTimeSpan(std::chrono::milliseconds(550)));
-                    Storyboard::SetTarget(rise, transform);
-                    Storyboard::SetTargetProperty(rise, L"Y");
-                    storyboard.Children().Append(rise);
-                    compact.as<wux::FrameworkElement>().Loaded([storyboard](auto const& sender, auto const&) {
-                        try { storyboard.Begin(); }
-                        catch (...) { sender.template as<wux::UIElement>().Opacity(1.0); }
-                    });
+''')
+content='            button.Content(compact);'
+assert s.count(content)==1
+s=s.replace(content,'''            bool transitionApplied = false;
+            auto outgoingObject = button.Content();
+            auto outgoing = outgoingObject ? outgoingObject.try_as<wux::UIElement>() : nullptr;
+            if (platformChanged && outgoing) {
+                try {
+                    if (winrt::Windows::UI::ViewManagement::UISettings().AnimationsEnabled()) {
+                        using namespace winrt::Windows::UI::Xaml::Media::Animation;
+                        button.Content(nullptr);
+                        wuxc::Grid stage;
+                        compact.Opacity(0.0);
+                        wuxm::TranslateTransform incomingTransform;
+                        incomingTransform.X(5.0);
+                        compact.RenderTransform(incomingTransform);
+                        wuxm::TranslateTransform outgoingTransform;
+                        outgoing.RenderTransform(outgoingTransform);
+                        stage.Children().Append(outgoing);
+                        stage.Children().Append(compact);
+                        button.Content(stage);
+                        Storyboard storyboard;
+                        const auto duration = wux::DurationHelper::FromTimeSpan(
+                            std::chrono::milliseconds(240));
+                        DoubleAnimation fadeOut; fadeOut.From(1.0); fadeOut.To(0.0); fadeOut.Duration(duration);
+                        Storyboard::SetTarget(fadeOut, outgoing); Storyboard::SetTargetProperty(fadeOut, L"Opacity");
+                        storyboard.Children().Append(fadeOut);
+                        DoubleAnimation slideOut; slideOut.From(0.0); slideOut.To(-5.0); slideOut.Duration(duration);
+                        Storyboard::SetTarget(slideOut, outgoingTransform); Storyboard::SetTargetProperty(slideOut, L"X");
+                        storyboard.Children().Append(slideOut);
+                        DoubleAnimation fadeIn; fadeIn.From(0.0); fadeIn.To(1.0); fadeIn.Duration(duration);
+                        Storyboard::SetTarget(fadeIn, compact); Storyboard::SetTargetProperty(fadeIn, L"Opacity");
+                        storyboard.Children().Append(fadeIn);
+                        DoubleAnimation slideIn; slideIn.From(5.0); slideIn.To(0.0); slideIn.Duration(duration);
+                        Storyboard::SetTarget(slideIn, incomingTransform); Storyboard::SetTargetProperty(slideIn, L"X");
+                        storyboard.Children().Append(slideIn);
+                        auto weakButton = winrt::make_weak(button);
+                        storyboard.Completed([weakButton, compact](auto const&, auto const&) {
+                            if (auto current = weakButton.get()) {
+                                compact.Opacity(1.0);
+                                current.Content(compact);
+                            }
+                        });
+                        storyboard.Begin();
+                        transitionApplied = true;
+                    }
+                } catch (...) {
+                    compact.Opacity(1.0);
                 }
-            } catch (...) { compact.Opacity(1.0); }
-        }''')
+            }
+            if (!transitionApplied) button.Content(compact);''')
 p.write_text(s,encoding='utf8')
-print('Applied quota change animation and stable single-platform rendering')
+print('Applied platform cross-fade and motionless same-platform updates')
