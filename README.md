@@ -2,6 +2,8 @@
 
 Windows 桌面小工具，把常用 AI 服务的额度与余额汇总到一个悬浮窗里，随时瞄一眼就知道还剩多少。
 
+官网：<https://othrik.github.io/QuotaBoard/>
+
 ## 支持的平台
 
 | 平台 | 展示内容 |
