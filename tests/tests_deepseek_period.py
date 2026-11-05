@@ -28,9 +28,9 @@ base,badge=split_period_label(taskbar_label(row),'deepseek')
 assert base=='DeepSeek开放平台' and badge in ('高峰','空闲','时段待确认')
 assert split_period_label('Gemini · Pro','gemini')==('Gemini · Pro',None)
 assert split_period_label('DeepSeek开放平台 · 高峰 · Plus','deepseek')==('DeepSeek开放平台 · 高峰 · Plus',None)
-layout=make_layout(taskbar_quota_text(row),None,base,badge=badge)
-title_row=layout['children'][0]['children'][1]['children'][0]
-badge_parts=[p for p in title_row['children'] if p.get('type')=='card']
+layout=make_layout(taskbar_quota_text(row),None,'',badge=badge)
+secondary_row=layout['children'][0]['children'][1]['children'][1]
+badge_parts=[p for p in secondary_row['children'] if p.get('type')=='card']
 assert len(badge_parts)==1
 badge_part=badge_parts[0]
 assert badge_part['children'][0]['text']==badge
@@ -39,5 +39,5 @@ assert badge_part['children'][0]['color']==PERIOD_BADGES[badge]['text']
 assert badge_part['children'][0]['fontSize']==12
 assert badge_part['radius']==3 and badge_part['padding']['left']==3
 assert badge_style('高峰')['background_css'].startswith('rgba(')
-assert not any(p.get('type')=='card' for p in make_layout('80%',None,'Gemini')['children'][0]['children'][1]['children'][0]['children'])
+assert not any(p.get('type')=='card' for p in make_layout('80%',None,'Gemini')['children'][0]['children'][1]['children'][1]['children'])
 print('DeepSeek Beijing-time boundaries, holidays, weekends, timezone, badge styling and display labels passed')

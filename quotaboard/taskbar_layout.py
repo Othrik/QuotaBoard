@@ -32,7 +32,14 @@ class QuotaMarkup(HTMLParser):
             else:
                 self.parts.append(dict(type='text',text=token,color=color,fontWeight=weight,fontSize=12,height=18,verticalAlignment='center'))
 
-def make_layout(markup,options=None,title_text=None,badge=None):
+SUBTEXT_COLOR='#FF646A73'
+
+def make_layout(markup,options=None,sub_text=None,badge=None):
+    """两行布局：第一行余量（大字号），第二行重置时间（小字号）。
+
+    sub_text 是第二行文字；badge（DeepSeek 计费时段）跟在第二行末尾。
+    平台名不再占一行，改由展开面板标题和悬浮详情承担。
+    """
     parser=QuotaMarkup();parser.feed(markup);style=typography(options)
     name_height=style['name_size']+4;quota_height=style['quota_size']+4
     height=max(40,name_height+quota_height+2);vertical_padding=max(1,(height-name_height-quota_height)//2);row_height=height-2*vertical_padding
@@ -44,28 +51,32 @@ def make_layout(markup,options=None,title_text=None,badge=None):
     for part in parser.parts:
         if part['type']=='text':part.update(fontSize=style['quota_size'],fontWeight=quota_weight,height=quota_height)
         else:part['width']=max(4,round(part['width']*style['quota_size']/12))
-    title=dict(type='text',bind='data.label',fontFamily=style['family'],fontSize=style['name_size'],fontWeight=name_weight,height=name_height,color='#FF17202B',horizontalAlignment='left')
-    if title_text is not None:
+    quota=dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=parser.parts)
+    pieces=[]
+    if sub_text:
         from html import escape
-        title_parser=QuotaMarkup();title_parser.feed(escape(title_text))
-        pieces=[]
-        for part in title_parser.parts:
+        sub_parser=QuotaMarkup();sub_parser.feed(escape(sub_text))
+        for part in sub_parser.parts:
             if part['type']=='spacer':pieces.append(part);continue
             for run,script in script_runs(part['text']):
-                pieces.append(dict(part,text=run,fontFamily=style['cjk_family'] if script=='cjk' else style['family'],fontSize=style['name_size'],fontWeight=name_weight,height=name_height))
-        if badge:
-            from .deepseek_period import badge_style
-            badge_colors=badge_style(badge)
-            pieces.append(dict(type='spacer',width=5,height=1))
-            pieces.append(dict(type='card',backgroundColor=badge_colors['background'],radius=3,
-                               padding=dict(left=3,right=3,top=0,bottom=0),verticalAlignment='center',
-                               children=[dict(type='text',text=badge,color=badge_colors['text'],
-                                              fontFamily=style['cjk_family'],fontSize=style['name_size'],
-                                              fontWeight=name_weight,height=name_height,
-                                              verticalAlignment='center')]))
-        title=dict(type='row',gap=0,height=name_height,horizontalAlignment='left',children=pieces)
-    values=dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=parser.parts)
-    return dict(type='card',width=width,height=height,backgroundColor='#00000000',padding=dict(left=6,right=8,top=vertical_padding,bottom=vertical_padding),radius=0,children=[dict(type='row',gap=8,height=row_height,verticalAlignment='center',horizontalAlignment='left',children=[dict(type='image',source=dict(bind='data.icon'),width=22,height=22,verticalAlignment='center',stretch='uniform',backgroundColor='#00000000'),dict(type='column',width=width-44,height=row_height,gap=0,verticalAlignment='center',horizontalAlignment='left',children=[title,values])])])
+                pieces.append(dict(part,text=run,fontFamily=style['cjk_family'] if script=='cjk' else style['family'],fontSize=style['name_size'],fontWeight=name_weight,height=name_height,color=SUBTEXT_COLOR))
+    if badge:
+        from .deepseek_period import badge_style
+        badge_colors=badge_style(badge)
+        pieces.append(dict(type='spacer',width=5,height=1))
+        pieces.append(dict(type='card',backgroundColor=badge_colors['background'],radius=3,
+                           padding=dict(left=3,right=3,top=0,bottom=0),verticalAlignment='center',
+                           children=[dict(type='text',text=badge,color=badge_colors['text'],
+                                          fontFamily=style['cjk_family'],fontSize=style['name_size'],
+                                          fontWeight=name_weight,height=name_height,
+                                          verticalAlignment='center')]))
+    secondary=dict(type='row',gap=0,height=name_height,horizontalAlignment='left',children=pieces)
+    # 没有重置时间（余额类平台）且没有徽标时只留一行，垂直居中，不留下空白第二行。
+    rows=[quota,secondary] if pieces else [quota]
+    return dict(type='card',width=width,height=height,backgroundColor='#00000000',padding=dict(left=6,right=8,top=vertical_padding,bottom=vertical_padding),radius=0,children=[
+        dict(type='row',gap=8,height=row_height,verticalAlignment='center',horizontalAlignment='left',children=[
+            dict(type='image',source=dict(bind='data.icon'),width=22,height=22,verticalAlignment='center',stretch='uniform',backgroundColor='#00000000'),
+            dict(type='column',width=width-44,height=row_height,gap=0,verticalAlignment='center',horizontalAlignment='left',children=rows)])])
 
 def make_details(result):
     lines=[]

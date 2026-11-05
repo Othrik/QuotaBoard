@@ -10,12 +10,12 @@ from quotaboard.model import QuotaResult
 app=QCoreApplication.instance() or QCoreApplication([])
 balance=QuotaResult('deepseek','DeepSeek','¥18.2402')
 balance_layout=make_layout(taskbar_quota_text(balance))
-balance_parts=balance_layout['children'][0]['children'][1]['children'][1]['children']
+balance_parts=balance_layout['children'][0]['children'][1]['children'][0]['children']
 assert ''.join(p.get('text',' ') for p in balance_parts)=='余额 ¥18.2402'
 assert balance_parts[1]['type']=='spacer' and balance_parts[1]['width']>=4
 assert taskbar_quota_text(QuotaResult('zhipu_member','智谱清言','积分 123'))=='积分 123'
 case=QuotaResult(platform='gemini',label='Gemini',display='5h 94% · 周 29%',metrics=[dict(label='5h',percent=94,note='5h重置 03:05'),dict(label='周',percent=29,note='周重置 11-07 20:01')])
-layout=make_layout(_dock_quota_text(case));parts=layout['children'][0]['children'][1]['children'][1]['children']
+layout=make_layout(_dock_quota_text(case));parts=layout['children'][0]['children'][1]['children'][0]['children']
 assert ''.join(p.get('text',' ') for p in parts)=='5h 94% · 周 29%'
 assert any(p.get('text')=='94%' and p['color']=='#FF27AE80' for p in parts)
 assert any(p.get('text')=='29%' and p['color']=='#FFE45D6A' for p in parts)
@@ -27,7 +27,7 @@ for label in ['5h','周']:
 details=make_details(case)
 assert len(expanded_layout(len(details))['children'][0]['children'])==len(details)+1
 case.metrics[1]['percent']=0
-layout=make_layout(_dock_quota_text(case));parts=layout['children'][0]['children'][1]['children'][1]['children']
+layout=make_layout(_dock_quota_text(case));parts=layout['children'][0]['children'][1]['children'][0]['children']
 assert ''.join(p.get('text',' ') for p in parts)=='11月7日 20:01 周重置'
 assert parts[0]['color']=='#FFE45D6A' and parts[0]['fontWeight']=='semibold'
 assert '重置时间：11-07 20:01' in make_details(case)

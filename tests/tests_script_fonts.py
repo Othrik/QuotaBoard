@@ -29,12 +29,12 @@ while not iterator.atEnd():
 assert any('智谱' in text and 'SimHei' in families for text,families in fragments)
 assert any('GLM' in text and 'Consolas' in families for text,families in fragments)
 layout=make_layout('5h 88% · 周 99%',style,'智谱 GLM · Plus')
-title=layout['children'][0]['children'][1]['children'][0]['children']
-values=layout['children'][0]['children'][1]['children'][1]['children']
-assert any(p.get('text')=='智谱' and p['fontFamily']=='SimHei' for p in title)
-assert any(p.get('text')=='GLM' and p['fontFamily']=='Consolas' for p in title)
-assert any(p.get('text')=='周' and p['fontFamily']=='SimSun' for p in values)
-assert any(p.get('text')=='99%' and p['fontFamily']=='Arial' for p in values)
+quota=layout['children'][0]['children'][1]['children'][0]['children']
+secondary=layout['children'][0]['children'][1]['children'][1]['children']
+assert any(p.get('text')=='智谱' and p['fontFamily']=='SimHei' for p in secondary)
+assert any(p.get('text')=='GLM' and p['fontFamily']=='Consolas' for p in secondary)
+assert any(p.get('text')=='周' and p['fontFamily']=='SimSun' for p in quota)
+assert any(p.get('text')=='99%' and p['fontFamily']=='Arial' for p in quota)
 large_native=make_layout('5h 88% · 周 99%',dict(name_size=16,quota_size=18),'豆包 · 标准套餐')
 column=large_native['children'][0]['children'][1]
 assert sum(child['height'] for child in column['children'])<=column['height']

@@ -19,13 +19,14 @@ scheduler._on_done('gemini',failed);assert partial==[('gemini',False)] and sched
 scheduler._on_done('codex',good);assert not scheduler.running
 for options in [None,dict(family='DengXian',weight=400,name_size=14,quota_size=16),
                 dict(family='Segoe UI Variable Text',weight=400,name_size=12,quota_family='Segoe UI Variable Display',quota_weight=600,quota_size=15)]:
- style=typography(options);layout=make_layout('5h <span style="color:#27AE80;font-weight:700">98%</span> · 周 29%',options)
- title=layout['children'][0]['children'][1]['children'][0]
- parts=layout['children'][0]['children'][1]['children'][1]['children']
- assert title['fontFamily']==style['family'] and title['fontWeight']==WEIGHTS[style['weight']]
+ style=typography(options);layout=make_layout('5h <span style="color:#27AE80;font-weight:700">98%</span> · 周 29%',options,'5h重置 03:05 · 周重置 11-07 20:01')
+ parts=layout['children'][0]['children'][1]['children'][0]['children']
+ secondary=layout['children'][0]['children'][1]['children'][1]['children']
  assert 40<=layout['height']<=48
  for part in parts:
   if part['type']=='text':assert part['fontFamily']==style['quota_cjk_family' if any(ord(ch)>=0x2E80 for ch in part['text']) else 'quota_family'] and part['fontWeight']==WEIGHTS[style['quota_weight']]
+ for part in secondary:
+  if part['type']=='text':assert part['fontFamily']==style['cjk_family' if any(ord(ch)>=0x2E80 for ch in part['text']) else 'family'] and part['fontWeight']==WEIGHTS[style['weight']]
 combined=typography(dict(family='Segoe UI Variable Text',weight=400,name_size=12,quota_family='Segoe UI Variable Display',quota_weight=600,quota_size=15))
 assert combined['family']!=combined['quota_family'] and combined['weight']!=combined['quota_weight'],'Name and quota fonts must be adjustable independently'
 assert typography({'family':'invalid','weight':None,'quota_family':'bogus'})['quota_family']=='Segoe UI Variable Text'
