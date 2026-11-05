@@ -24,12 +24,12 @@ def pricing_period(now=None):
 def display_name(label,platform,now=None):
     return label+(' · '+pricing_period(now) if platform=='deepseek' else '')
 
-# 计费时段是价格提示，不是错误状态。使用低饱和色和轻量背景，
-# 避免“高峰”看起来像请求失败，同时保留一眼可辨的层级。
+# 参考 ChatGPT 网页的强调文字：文字沿用正文色，只铺一层轻量强调色。
+# 计费时段不是告警，不使用状态圆点或高饱和彩色文字。
 PERIOD_BADGES={
-    '高峰':{'text':'#FFC25A0A','background':'#22F59E0B','dot':'#FFF59E0B'},
-    '空闲':{'text':'#FF0F766E','background':'#2214B8A6','dot':'#FF14B8A6'},
-    '时段待确认':{'text':'#FF64748B','background':'#187C8DA4','dot':'#FF94A3B8'},
+    '高峰':{'text':'#FF3F352B','background':'#2EF0A13A','surface':'#FFFFF1DC'},
+    '空闲':{'text':'#FF293B37','background':'#2910A37F','surface':'#FFE8F6F0'},
+    '时段待确认':{'text':'#FF475569','background':'#247C8DA4','surface':'#FFF1F4F7'},
 }
 
 def badge_style(period):
@@ -41,7 +41,7 @@ def badge_style(period):
     blue=int(style['background'][7:9],16)
     return dict(style,text_css='#'+style['text'][3:],
                 background_css=f'rgba({red},{green},{blue},{alpha:.3f})',
-                dot_css='#'+style['dot'][3:])
+                surface_css='#'+style['surface'][3:])
 
 def split_period_label(label,platform):
     """拆出计费时段后缀，返回 (基础名称, 时段徽标文本或 None)。"""

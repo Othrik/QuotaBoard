@@ -60,11 +60,11 @@ class QuotaCard(QFrame):
 
     def _set_period_badge(self, period, style_factory):
         colors=style_factory(period)
-        self.period_badge.setText('●  '+period)
+        self.period_badge.setText(period)
         self.period_badge.setStyleSheet(
-            'font-size:10px;font-weight:600;'
-            f'color:{colors["text_css"]};background:{colors["background_css"]};'
-            'border-radius:6px;padding:2px 7px;')
+            'font-size:11px;font-weight:600;'
+            f'color:{colors["text_css"]};background:{colors["surface_css"]};'
+            'border-radius:4px;padding:1px 4px;')
 
     def __init__(self, key, parent=None):
         super().__init__(parent)

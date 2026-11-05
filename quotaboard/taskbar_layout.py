@@ -56,17 +56,13 @@ def make_layout(markup,options=None,title_text=None,badge=None):
         if badge:
             from .deepseek_period import badge_style
             badge_colors=badge_style(badge)
-            badge_size=max(9,style['name_size']-2)
-            pieces.append(dict(type='spacer',width=6,height=1))
-            pieces.append(dict(type='card',backgroundColor=badge_colors['background'],radius=5,
-                               padding=dict(left=5,right=6,top=1,bottom=1),verticalAlignment='center',
-                               children=[dict(type='row',gap=4,height=max(12,name_height-4),verticalAlignment='center',
-                                              children=[dict(type='card',width=5,height=5,radius=3,
-                                                             backgroundColor=badge_colors['dot']),
-                                                        dict(type='text',text=badge,color=badge_colors['text'],
-                                                             fontFamily=style['cjk_family'],fontSize=badge_size,
-                                                             fontWeight='semibold',height=max(10,name_height-4),
-                                                             verticalAlignment='center')])]))
+            pieces.append(dict(type='spacer',width=5,height=1))
+            pieces.append(dict(type='card',backgroundColor=badge_colors['background'],radius=3,
+                               padding=dict(left=3,right=3,top=0,bottom=0),verticalAlignment='center',
+                               children=[dict(type='text',text=badge,color=badge_colors['text'],
+                                              fontFamily=style['cjk_family'],fontSize=style['name_size'],
+                                              fontWeight=name_weight,height=name_height,
+                                              verticalAlignment='center')]))
         title=dict(type='row',gap=0,height=name_height,horizontalAlignment='left',children=pieces)
     values=dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=parser.parts)
     return dict(type='card',width=width,height=height,backgroundColor='#00000000',padding=dict(left=6,right=8,top=vertical_padding,bottom=vertical_padding),radius=0,children=[dict(type='row',gap=8,height=row_height,verticalAlignment='center',horizontalAlignment='left',children=[dict(type='image',source=dict(bind='data.icon'),width=22,height=22,verticalAlignment='center',stretch='uniform',backgroundColor='#00000000'),dict(type='column',width=width-44,height=row_height,gap=0,verticalAlignment='center',horizontalAlignment='left',children=[title,values])])])

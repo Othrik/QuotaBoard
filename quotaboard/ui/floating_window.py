@@ -347,7 +347,7 @@ def _dock_quota_text(result: QuotaResult, font_weight: int = 700, reset_mode='ab
         period_name=pricing_period(now)
         badge=badge_style(period_name)
         return (_dock_quota_text(result,font_weight,reset_mode,now,False)+' · '
-                +f'<span style="color:{badge["text_css"]}; font-weight:600">● {escape(period_name)}</span>')
+                +f'<span style="color:{badge["text_css"]}; background-color:{badge["surface_css"]}; font-weight:600">{escape(period_name)}</span>')
     def red(text):
         return f'<span style="color:{C_RED}; font-weight:{font_weight}">{escape(text)}</span>'
     def period(text):
