@@ -1,4 +1,5 @@
 """Rotation selects models; native animation keys only on platform changes."""
+from pathlib import Path
 from tests.tests_rotation_interval import controller,config
 from quotaboard.model import QuotaResult
 
@@ -10,4 +11,9 @@ assert controller._rotation_deadline==float('inf')
 assert controller.rotation_row([a],100000).platform=='codex'
 assert controller.rotation_row([a,b],100001).platform=='codex'
 assert controller.rotation_row([a,b],100013).platform=='gemini'
+patch=Path('tools/patch_taskbar_animation.py').read_text(encoding='utf8')
+assert 'button.Content(nullptr)' not in patch
+assert 'stage.Children().Clear()' not in patch
+assert 'stage.Children().SetAt(0, compact)' in patch
+assert 'incomingTransform.Y(6.0)' in patch and 'slideOut.To(-6.0)' in patch
 print('Single-AI stability and multi-model rotation transition points passed')

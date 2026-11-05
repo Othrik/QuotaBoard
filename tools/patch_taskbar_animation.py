@@ -69,8 +69,7 @@ s=s.replace(content,'''            bool contentHandled = false;
                         storyboard.Children().Append(slideIn);
                         storyboard.Completed([stage, compact](auto const&, auto const&) {
                             compact.Opacity(1.0);
-                            stage.Children().Clear();
-                            stage.Children().Append(compact);
+                            if (stage.Children().Size() > 1) stage.Children().RemoveAt(0);
                         });
                         storyboard.Begin();
                         contentHandled = true;
@@ -81,8 +80,8 @@ s=s.replace(content,'''            bool contentHandled = false;
             }
             if (!contentHandled) {
                 auto stage = stageIt->second;
-                stage.Children().Clear();
-                stage.Children().Append(compact);
+                if (stage.Children().Size() == 0) stage.Children().Append(compact);
+                else stage.Children().SetAt(0, compact);
                 displayedElements.insert_or_assign(instance.instanceId, compact);
             }''')
 p.write_text(s,encoding='utf8')
