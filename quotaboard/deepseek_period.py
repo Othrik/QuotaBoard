@@ -27,7 +27,7 @@ def display_name(label,platform,now=None):
 # 参考 ChatGPT 网页的强调文字：文字沿用正文色，只铺一层轻量强调色。
 # 计费时段不是告警，不使用状态圆点或高饱和彩色文字。
 PERIOD_BADGES={
-    '高峰':{'text':'#FF3F352B','background':'#2EF0A13A','surface':'#FFFFF1DC'},
+    '高峰':{'text':'#FF9F2923','background':'#2EEF4444','surface':'#FFFFECEB'},
     '空闲':{'text':'#FF293B37','background':'#2910A37F','surface':'#FFE8F6F0'},
     '时段待确认':{'text':'#FF475569','background':'#247C8DA4','surface':'#FFF1F4F7'},
 }

@@ -21,7 +21,7 @@ assert taskbar_label(row).startswith('DeepSeek开放平台 · ')
 assert taskbar_quota_text(row)=='余额 ¥18.24'
 peak_text=_dock_quota_text(row,now=datetime(2026,11,5,10))
 off_text=_dock_quota_text(row,now=datetime(2026,11,5,18))
-assert peak_text.endswith('高峰</span>') and 'color:#3F352B' in peak_text and 'background-color:#FFF1DC' in peak_text
+assert peak_text.endswith('高峰</span>') and 'color:#9F2923' in peak_text and 'background-color:#FFECEB' in peak_text
 assert off_text.endswith('空闲</span>') and 'color:#293B37' in off_text and 'background-color:#E8F6F0' in off_text
 assert '●' not in peak_text+off_text
 base,badge=split_period_label(taskbar_label(row),'deepseek')
