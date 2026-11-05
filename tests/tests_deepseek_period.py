@@ -1,5 +1,5 @@
 from datetime import datetime,timezone
-from quotaboard.deepseek_period import pricing_period,display_name,split_period_label,PERIOD_BADGES
+from quotaboard.deepseek_period import pricing_period,display_name,split_period_label,PERIOD_BADGES,badge_style
 from quotaboard.model import QuotaResult
 from quotaboard.taskbar import taskbar_label,taskbar_quota_text
 from quotaboard.taskbar_layout import make_layout
@@ -21,8 +21,8 @@ assert taskbar_label(row).startswith('DeepSeek开放平台 · ')
 assert taskbar_quota_text(row)=='余额 ¥18.24'
 peak_text=_dock_quota_text(row,now=datetime(2026,11,5,10))
 off_text=_dock_quota_text(row,now=datetime(2026,11,5,18))
-assert peak_text.endswith('高峰</span>') and 'color:#DC2626' in peak_text and 'background-color:#FEE2E2' in peak_text
-assert off_text.endswith('空闲</span>') and 'color:#16A34A' in off_text and 'background-color:#DCFCE7' in off_text
+assert peak_text.endswith('● 高峰</span>') and 'color:#C25A0A' in peak_text and 'background-color' not in peak_text
+assert off_text.endswith('● 空闲</span>') and 'color:#0F766E' in off_text and 'background-color' not in off_text
 base,badge=split_period_label(taskbar_label(row),'deepseek')
 assert base=='DeepSeek开放平台' and badge in ('高峰','空闲','时段待确认')
 assert split_period_label('Gemini · Pro','gemini')==('Gemini · Pro',None)
@@ -32,8 +32,11 @@ title_row=layout['children'][0]['children'][1]['children'][0]
 badge_parts=[p for p in title_row['children'] if p.get('type')=='card']
 assert len(badge_parts)==1
 badge_part=badge_parts[0]
-assert badge_part['children'][0]['text']==badge
+assert badge_part['children'][0]['children'][1]['text']==badge
 assert badge_part['backgroundColor']==PERIOD_BADGES[badge]['background']
-assert badge_part['children'][0]['color']==PERIOD_BADGES[badge]['text']
+assert badge_part['children'][0]['children'][0]['backgroundColor']==PERIOD_BADGES[badge]['dot']
+assert badge_part['children'][0]['children'][1]['color']==PERIOD_BADGES[badge]['text']
+assert badge_part['children'][0]['children'][1]['fontSize']<12
+assert badge_style('高峰')['background_css'].startswith('rgba(')
 assert not any(p.get('type')=='card' for p in make_layout('80%',None,'Gemini')['children'][0]['children'][1]['children'][0]['children'])
 print('DeepSeek Beijing-time boundaries, holidays, weekends, timezone, badge styling and display labels passed')

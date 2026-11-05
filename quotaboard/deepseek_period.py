@@ -24,12 +24,24 @@ def pricing_period(now=None):
 def display_name(label,platform,now=None):
     return label+(' · '+pricing_period(now) if platform=='deepseek' else '')
 
-# 时段徽标配色：彩色文字 + 浅色强调背景（ARGB，前两位为不透明度）。
+# 计费时段是价格提示，不是错误状态。使用低饱和色和轻量背景，
+# 避免“高峰”看起来像请求失败，同时保留一眼可辨的层级。
 PERIOD_BADGES={
-    '高峰':{'text':'#FFDC2626','background':'#FFFEE2E2'},
-    '空闲':{'text':'#FF16A34A','background':'#FFDCFCE7'},
-    '时段待确认':{'text':'#FF64748B','background':'#FFF1F5F9'},
+    '高峰':{'text':'#FFC25A0A','background':'#22F59E0B','dot':'#FFF59E0B'},
+    '空闲':{'text':'#FF0F766E','background':'#2214B8A6','dot':'#FF14B8A6'},
+    '时段待确认':{'text':'#FF64748B','background':'#187C8DA4','dot':'#FF94A3B8'},
 }
+
+def badge_style(period):
+    """Return colors in native ARGB and Qt/CSS RGB forms."""
+    style=PERIOD_BADGES.get(period,PERIOD_BADGES['时段待确认'])
+    alpha=int(style['background'][1:3],16)/255
+    red=int(style['background'][3:5],16)
+    green=int(style['background'][5:7],16)
+    blue=int(style['background'][7:9],16)
+    return dict(style,text_css='#'+style['text'][3:],
+                background_css=f'rgba({red},{green},{blue},{alpha:.3f})',
+                dot_css='#'+style['dot'][3:])
 
 def split_period_label(label,platform):
     """拆出计费时段后缀，返回 (基础名称, 时段徽标文本或 None)。"""

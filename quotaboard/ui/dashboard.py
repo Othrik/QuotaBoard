@@ -58,6 +58,14 @@ class QuotaCard(QFrame):
     taskbar_toggled = Signal(str, bool)
     floating_toggled = Signal(str, bool)
 
+    def _set_period_badge(self, period, style_factory):
+        colors=style_factory(period)
+        self.period_badge.setText('●  '+period)
+        self.period_badge.setStyleSheet(
+            'font-size:10px;font-weight:600;'
+            f'color:{colors["text_css"]};background:{colors["background_css"]};'
+            'border-radius:6px;padding:2px 7px;')
+
     def __init__(self, key, parent=None):
         super().__init__(parent)
         self.key = key
@@ -74,13 +82,14 @@ class QuotaCard(QFrame):
         title.setStyleSheet('font-size:16px;font-weight:700;')
         header.addWidget(title)
         if key=='deepseek':
-            from ..deepseek_period import pricing_period,RULE
+            from ..deepseek_period import pricing_period,RULE,badge_style
             self.period_badge=label(pricing_period())
-            self.period_badge.setStyleSheet('font-size:11px;font-weight:600;color:#56708F;')
+            self._update_period_badge=lambda: self._set_period_badge(pricing_period(),badge_style)
+            self._update_period_badge()
             self.period_badge.setToolTip(RULE)
             header.addWidget(self.period_badge)
             self.period_timer=QTimer(self);self.period_timer.setInterval(1000)
-            self.period_timer.timeout.connect(lambda: self.period_badge.setText(pricing_period()))
+            self.period_timer.timeout.connect(self._update_period_badge)
             self.period_timer.start()
         header.addStretch()
         self.status = label()

@@ -343,11 +343,11 @@ class _Row(QFrame):
 
 def _dock_quota_text(result: QuotaResult, font_weight: int = 700, reset_mode='absolute', now=None, show_period=True) -> str:
     if result.platform=='deepseek' and show_period:
-        from ..deepseek_period import pricing_period,PERIOD_BADGES
+        from ..deepseek_period import pricing_period,badge_style
         period_name=pricing_period(now)
-        badge=PERIOD_BADGES[period_name]
+        badge=badge_style(period_name)
         return (_dock_quota_text(result,font_weight,reset_mode,now,False)+' · '
-                +f'<span style="color:#{badge["text"][3:]}; background-color:#{badge["background"][3:]}">{escape(period_name)}</span>')
+                +f'<span style="color:{badge["text_css"]}; font-weight:600">● {escape(period_name)}</span>')
     def red(text):
         return f'<span style="color:{C_RED}; font-weight:{font_weight}">{escape(text)}</span>'
     def period(text):
