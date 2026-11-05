@@ -14,6 +14,8 @@ assert controller.rotation_row([a,b],100013).platform=='gemini'
 patch=Path('tools/patch_taskbar_animation.py').read_text(encoding='utf8')
 assert 'button.Content(nullptr)' not in patch
 assert 'stage.Children().Clear()' not in patch
+assert 'storyboard.Completed' not in patch
+assert 'displayedElements' not in patch
 assert 'stage.Children().SetAt(0, compact)' in patch
-assert 'incomingTransform.Y(6.0)' in patch and 'slideOut.To(-6.0)' in patch
+assert 'slideIn.From(6.0)' in patch and 'slideIn.To(0.0)' in patch
 print('Single-AI stability and multi-model rotation transition points passed')
