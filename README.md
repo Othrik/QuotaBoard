@@ -56,7 +56,16 @@ python -m PyInstaller QuotaBoard.spec       # 打包 exe
 
 MSI 安装包需要 WiX Toolset 3.14。
 
+## 许可
+
+MIT，见 [LICENSE](LICENSE)。可以自由使用、修改、再分发，也可以商用；保留版权声明即可。
+
+- 任务栏注入组件取自 TaskbarWidgets，同为 MIT 许可，原文见 `assets/taskbar/TaskbarWidgets-LICENSE.txt`
+- 各平台名称与图标归各自厂商所有，仅用于标识被查询的服务，不在本许可范围内
+
 ## 版本
+
+1.1.58 任务栏里的窗口标签（5h / 周）固定为深色，不再跟随额度状态变色，只有百分比继续按剩余多少着色；仓库以 MIT 许可开源，任何人都可以自由使用、修改和分发。注意任务栏注入组件来自 TaskbarWidgets（MIT，见 `assets/taskbar/TaskbarWidgets-LICENSE.txt`），各平台名称与图标归各自厂商所有。
 
 1.1.57 任务栏按窗口分行：第一行「5h 额度 + 5h 重置时间」、第二行「周额度 + 周重置时间」；只有周额度的平台额度在上、重置在下，余额类平台第二行显示刷新时刻。
 

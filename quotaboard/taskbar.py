@@ -11,6 +11,7 @@ from .rotation import rotation_seconds
 from .deepseek_period import split_period_label
 
 WIDGET_ID='com.othrik.quotaboard'
+LABEL_COLOR='#FF17202B'
 
 def taskbar_label(result):
     plan = ' '.join(str(result.subscription_plan or '').split())
@@ -57,7 +58,8 @@ def taskbar_window_rows(result,reset_mode='absolute'):
         except (KeyError,TypeError,ValueError):continue
         label=str(metric.get('label','')).strip()
         color=_pct_color(pct)
-        markup=(f'<span style="color:{color}; font-weight:700">{escape(label)}</span>'
+        # 窗口标签（5h/周）固定深色，只有百分比跟随剩余状态着色。
+        markup=(f'<span style="color:{LABEL_COLOR}; font-weight:700">{escape(label)}</span>'
                 f' <span style="color:{color}; font-weight:700">{pct:.0f}%</span>')
         rows.append(dict(markup=markup,reset=_metric_reset(result,metric,reset_mode)))
     return rows

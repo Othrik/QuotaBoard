@@ -20,9 +20,11 @@ texts=[p.get('text') for row in layout['children'][0]['children'][1]['children']
 assert 'Gemini' not in texts,'平台名不应再出现在任务栏里'
 row1=[p for p in layout['children'][0]['children'][1]['children'][0]['children'] if p.get('type')=='text']
 assert any(p['text']=='94%' and p['color']=='#FF27AE80' for p in row1)
+assert all(p['color']=='#FF17202B' for p in row1 if p['text']=='5h'),'窗口标签固定深色，不跟着额度变色'
 assert all(p['color']=='#FF646A73' for p in row1 if p['text'].startswith('03:05'))
 row2=[p for p in layout['children'][0]['children'][1]['children'][1]['children'] if p.get('type')=='text']
 assert any(p['text']=='29%' and p['color']=='#FFE45D6A' for p in row2)
+assert all(p['color']=='#FF17202B' for p in row2 if p['text']=='周')
 
 weekly=QuotaResult('gemini','Gemini','周 29%',metrics=[dict(label='周',percent=29,note='周重置 11-07 20:01')])
 assert len(taskbar_window_rows(weekly))==1

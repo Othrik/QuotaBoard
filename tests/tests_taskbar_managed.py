@@ -60,6 +60,8 @@ if True:
  catalog_lines=[''.join(p.get('text',' ') for p in row['children']) for row in catalog_layout['children'][0]['children'][1]['children']]
  assert catalog_lines==['5h 94% 03:05重置','周 0% 11-07 20:01重置'],catalog_lines
  assert 40<=catalog_layout['height']<=48,catalog_layout['height']
+ catalog_parts=[p for row in catalog_layout['children'][0]['children'][1]['children'] for p in row['children'] if p.get('type')=='text']
+ assert all(p['color']=='#FF17202B' for p in catalog_parts if p['text'] in ('5h','周')),'窗口标签固定深色'
  assert '缓存' not in state['data']['label']
  assert all(word not in json.dumps(state) for word in ['api_key','cookie','credential'])
  from dataclasses import replace
