@@ -1,5 +1,6 @@
 """Native taskbar layout built from the floating board's quota markup."""
 from html.parser import HTMLParser
+from html import escape
 import re
 from .typography import typography,WEIGHTS,script_runs
 
@@ -34,49 +35,69 @@ class QuotaMarkup(HTMLParser):
 
 SUBTEXT_COLOR='#FF646A73'
 
-def make_layout(markup,options=None,sub_text=None,badge=None):
-    """两行布局：第一行余量（大字号），第二行重置时间（小字号）。
-
-    sub_text 是第二行文字；badge（DeepSeek 计费时段）跟在第二行末尾。
-    平台名不再占一行，改由展开面板标题和悬浮详情承担。
-    """
-    parser=QuotaMarkup();parser.feed(markup);style=typography(options)
-    name_height=style['name_size']+4;quota_height=style['quota_size']+4
-    height=max(40,name_height+quota_height+2);vertical_padding=max(1,(height-name_height-quota_height)//2);row_height=height-2*vertical_padding
-    width=max(220,round(220*max(style['name_size']/12,style['quota_size']/12)))
-    name_weight=WEIGHTS[style['weight']]
-    quota_weight=WEIGHTS[style['quota_weight']]
-    parser.parts=[piece for part in parser.parts for piece in
-                  ([dict(part,text=run,fontFamily=style['quota_cjk_family'] if script=='cjk' else style['quota_family']) for run,script in script_runs(part['text'])] if part['type']=='text' else [part])]
-    for part in parser.parts:
-        if part['type']=='text':part.update(fontSize=style['quota_size'],fontWeight=quota_weight,height=quota_height)
-        else:part['width']=max(4,round(part['width']*style['quota_size']/12))
-    quota=dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=parser.parts)
+def _text_pieces(markup,style,size,weight,height,family,cjk_family,color=None):
+    """把一条 markup/纯文本拆成按中西文字体分段的原生文本片段。"""
+    parser=QuotaMarkup();parser.feed(markup)
     pieces=[]
-    if sub_text:
-        from html import escape
-        sub_parser=QuotaMarkup();sub_parser.feed(escape(sub_text))
-        for part in sub_parser.parts:
-            if part['type']=='spacer':pieces.append(part);continue
-            for run,script in script_runs(part['text']):
-                pieces.append(dict(part,text=run,fontFamily=style['cjk_family'] if script=='cjk' else style['family'],fontSize=style['name_size'],fontWeight=name_weight,height=name_height,color=SUBTEXT_COLOR))
-    if badge:
+    for part in parser.parts:
+        if part['type']=='spacer':
+            part['width']=max(4,round(part['width']*size/12));pieces.append(part);continue
+        for run,script in script_runs(part['text']):
+            piece=dict(part,text=run,fontFamily=cjk_family if script=='cjk' else family,fontSize=size,fontWeight=weight,height=height)
+            if color:piece['color']=color
+            pieces.append(piece)
+    return pieces
+
+def make_rows_layout(rows,options=None,badge=None):
+    """按窗口分行：rows=[{markup,reset}]。
+
+    两行及以上：每行是「额度 + 该窗口的重置时间」；
+    只有一行：额度在上、重置时间单独一行，余额类没有重置时只留额度行。
+    """
+    style=typography(options)
+    name_height=style['name_size']+4;quota_height=style['quota_size']+4
+    width=max(220,round(220*max(style['name_size']/12,style['quota_size']/12)))
+    name_weight=WEIGHTS[style['weight']];quota_weight=WEIGHTS[style['quota_weight']]
+    def quota_pieces(markup):
+        return _text_pieces(markup,style,style['quota_size'],quota_weight,quota_height,style['quota_family'],style['quota_cjk_family'])
+    def reset_pieces(text):
+        return _text_pieces(escape(text),style,style['name_size'],name_weight,name_height,style['family'],style['cjk_family'],SUBTEXT_COLOR)
+    def badge_pieces():
         from .deepseek_period import badge_style
-        badge_colors=badge_style(badge)
-        pieces.append(dict(type='spacer',width=5,height=1))
-        pieces.append(dict(type='card',backgroundColor=badge_colors['background'],radius=3,
-                           padding=dict(left=3,right=3,top=0,bottom=0),verticalAlignment='center',
-                           children=[dict(type='text',text=badge,color=badge_colors['text'],
-                                          fontFamily=style['cjk_family'],fontSize=style['name_size'],
-                                          fontWeight=name_weight,height=name_height,
-                                          verticalAlignment='center')]))
-    secondary=dict(type='row',gap=0,height=name_height,horizontalAlignment='left',children=pieces)
-    # 没有重置时间（余额类平台）且没有徽标时只留一行，垂直居中，不留下空白第二行。
-    rows=[quota,secondary] if pieces else [quota]
+        colors=badge_style(badge)
+        return [dict(type='spacer',width=5,height=1),
+                dict(type='card',backgroundColor=colors['background'],radius=3,
+                     padding=dict(left=3,right=3,top=0,bottom=0),verticalAlignment='center',
+                     children=[dict(type='text',text=badge,color=colors['text'],
+                                    fontFamily=style['cjk_family'],fontSize=style['name_size'],
+                                    fontWeight=name_weight,height=name_height,
+                                    verticalAlignment='center')])]
+    lines=[]
+    if len(rows)<=1:
+        row=rows[0] if rows else dict(markup='',reset='')
+        lines.append(dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=quota_pieces(row.get('markup',''))))
+        sub=reset_pieces(row['reset']) if row.get('reset') else []
+        if badge:sub+=badge_pieces()
+        if sub:
+            lines.append(dict(type='row',gap=0,height=name_height,horizontalAlignment='left',children=sub))
+    else:
+        for row in rows:
+            pieces=quota_pieces(row.get('markup',''))
+            if row.get('reset'):
+                pieces.append(dict(type='spacer',width=6,height=1))
+                pieces+=reset_pieces(row['reset'])
+            lines.append(dict(type='row',gap=0,height=quota_height,horizontalAlignment='left',children=pieces))
+        if badge:lines[-1]['children']+=badge_pieces()
+    total=sum(line['height'] for line in lines)
+    height=max(40,total+2);vertical_padding=max(1,(height-total)//2);row_height=height-2*vertical_padding
     return dict(type='card',width=width,height=height,backgroundColor='#00000000',padding=dict(left=6,right=8,top=vertical_padding,bottom=vertical_padding),radius=0,children=[
         dict(type='row',gap=8,height=row_height,verticalAlignment='center',horizontalAlignment='left',children=[
             dict(type='image',source=dict(bind='data.icon'),width=22,height=22,verticalAlignment='center',stretch='uniform',backgroundColor='#00000000'),
-            dict(type='column',width=width-44,height=row_height,gap=0,verticalAlignment='center',horizontalAlignment='left',children=rows)])])
+            dict(type='column',width=width-44,height=row_height,gap=0,verticalAlignment='center',horizontalAlignment='left',children=lines)])])
+
+def make_layout(markup,options=None,sub_text=None,badge=None):
+    """单窗口/余额的单行构造：额度一行，可选的重置时间单独一行。"""
+    return make_rows_layout([dict(markup=markup,reset=sub_text or '')],options,badge)
 
 def make_details(result):
     lines=[]

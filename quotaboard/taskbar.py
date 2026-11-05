@@ -4,7 +4,7 @@ import hashlib,json,os,re,shutil,sys,time
 from pathlib import Path
 from PySide6.QtCore import QObject,QProcess,QTimer,Signal
 from .model import QuotaResult,PLATFORM_META
-from .taskbar_layout import make_layout,make_details,expanded_layout,detail_height
+from .taskbar_layout import make_layout,make_rows_layout,make_details,expanded_layout,detail_height
 from . import __version__
 from .balance_display import MONETARY_PLATFORMS
 from .rotation import rotation_seconds
@@ -25,35 +25,48 @@ def taskbar_quota_text(result,reset_mode='absolute'):
         return '余额 '+text
     return text
 
-def taskbar_reset_text(result,reset_mode='absolute'):
-    """任务栏第二行：各窗口的重置时间，压缩成「5h 03:05 · 周 11-07 20:01」。
+def _metric_reset(result,metric,reset_mode='absolute'):
+    """单个窗口的重置时间，缩成「03:05重置」「11-07 20:01重置」或「21小时后重置」。"""
+    label=str(metric.get('label','')).strip()
+    if reset_mode=='countdown':
+        from .reset_time import countdown_text
+        return countdown_text(result,metric) or ''
+    note=' '.join(str(metric.get('note','')).split())
+    note=re.sub(r'^(?:5h|周)\s*重置\s*','',note)
+    if not note:
+        # 部分平台只给 resets_at，没有格式化好的 note。
+        from datetime import datetime
+        from .reset_time import reset_timestamp
+        stamp=reset_timestamp(result,metric)
+        if stamp:
+            note=datetime.fromtimestamp(stamp).strftime('%H:%M' if label=='5h' else '%m-%d %H:%M')
+    return f'{note}重置' if note else ''
 
-    任务栏卡片只有 220px 宽，重复两次「重置」会被裁掉，所以只保留窗口标签+时刻。
-    余额类平台没有重置概念时留空。
+def taskbar_window_rows(result,reset_mode='absolute'):
+    """任务栏按窗口拆行：[{markup, reset}]。
+
+    多窗口时每行是「额度 + 该窗口重置时间」；只有一行时额度在上、重置在下，
+    由 make_rows_layout 处理。余额/积分类没有窗口，返回空列表。
     """
-    if not result.ok:return ''
-    parts=[]
+    if not result.ok:return []
+    from .ui.floating_window import _pct_color
+    from html import escape
+    rows=[]
     for metric in (result.metrics or []):
+        try:pct=float(metric['percent'])
+        except (KeyError,TypeError,ValueError):continue
         label=str(metric.get('label','')).strip()
-        if reset_mode=='countdown':
-            from .reset_time import countdown_text
-            text=countdown_text(result,metric)
-            if text:
-                # 任务栏一行放不下「…后重置」两个窗口，去掉共用后缀。
-                if text.endswith('重置'):text=text[:-2]
-                parts.append(f'{label} {text}'.strip())
-            continue
-        note=' '.join(str(metric.get('note','')).split())
-        note=re.sub(r'^(?:5h|周)\s*重置\s*','',note)
-        if not note:
-            # 部分平台只给 resets_at，没有格式化好的 note。
-            from datetime import datetime
-            from .reset_time import reset_timestamp
-            stamp=reset_timestamp(result,metric)
-            if stamp:
-                note=datetime.fromtimestamp(stamp).strftime('%H:%M' if label=='5h' else '%m-%d %H:%M')
-        if note:parts.append(f'{label} {note}'.strip())
-    return ' · '.join(parts)
+        color=_pct_color(pct)
+        markup=(f'<span style="color:{color}; font-weight:700">{escape(label)}</span>'
+                f' <span style="color:{color}; font-weight:700">{pct:.0f}%</span>')
+        rows.append(dict(markup=markup,reset=_metric_reset(result,metric,reset_mode)))
+    return rows
+
+def taskbar_refresh_text(result):
+    """余额类的第二行：数据刷新时刻，避免卡片只剩一行。"""
+    if not result.ok:return ''
+    time=str(result.updated_at).rsplit(' ',1)[-1][:5]
+    return time+' 刷新' if time else ''
 
 def rotation_candidates(rows, platforms=None):
     platforms = platforms or {}
@@ -120,8 +133,12 @@ class TaskbarController(QObject):
             row=self.rotation_row(playable) or QuotaResult(platform='',label='QuotaBoard',display='等待成功获取额度')
             label_full=taskbar_label(row)
             _,badge=split_period_label(label_full,row.platform)
-            reset_text=taskbar_reset_text(row,self.config._data.get('reset_display','absolute'))
-            layout=make_layout(taskbar_quota_text(row,self.config._data.get('reset_display','absolute')),self.config._data.get('display_typography'),reset_text,badge=badge)
+            reset_mode=self.config._data.get('reset_display','absolute')
+            window_rows=taskbar_window_rows(row,reset_mode)
+            if window_rows:
+                layout=make_rows_layout(window_rows,self.config._data.get('display_typography'),badge=badge)
+            else:
+                layout=make_layout(taskbar_quota_text(row,reset_mode),self.config._data.get('display_typography'),taskbar_refresh_text(row),badge=badge)
             details=make_details(row)
             entry=dict(id=WIDGET_ID,displayName='QuotaBoard',renderer='native',valid=True,width=layout['width'],height=layout['height'],layout=layout,permissions={},nativeRenderer=dict(expandedWidth=360,expandedHeight=detail_height(len(details)),activation='click',expandDirection='auto'),expandedLayout=expanded_layout(len(details)))
             # 目录与状态只在内容变化时落盘：任务栏组件监听这些文件，

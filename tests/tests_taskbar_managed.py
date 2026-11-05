@@ -56,6 +56,10 @@ if True:
  catalog=json.loads((controller.data/'Runtime/WidgetCatalog.json').read_text('utf8'))
  state=json.loads((controller.data/'State/com.othrik.quotaboard.json').read_text('utf8'))
  assert catalog['widgets'][0]['renderer']=='native' and state['data']['label']=='Gemini'
+ catalog_layout=catalog['widgets'][0]['layout']
+ catalog_lines=[''.join(p.get('text',' ') for p in row['children']) for row in catalog_layout['children'][0]['children'][1]['children']]
+ assert catalog_lines==['5h 94% 03:05重置','周 0% 11-07 20:01重置'],catalog_lines
+ assert 40<=catalog_layout['height']<=48,catalog_layout['height']
  assert '缓存' not in state['data']['label']
  assert all(word not in json.dumps(state) for word in ['api_key','cookie','credential'])
  from dataclasses import replace

@@ -1,2 +1,2 @@
 """QuotaBoard：AI 额度桌面悬浮窗。"""
-__version__ = "1.1.56"
+__version__ = "1.1.57"
