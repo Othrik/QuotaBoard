@@ -153,18 +153,45 @@ def _schtasks(*args: str) -> bool:
         return False
 
 
-def _ensure_task() -> bool:
-    """确保 VSS 计划任务存在（首次创建弹一次 UAC，之后静默运行）。"""
-    if _schtasks("/Query", "/TN", _TASK_NAME):
-        return True
-    exe = sys.executable
+def _schtasks_xml() -> str:
+    """读出计划任务定义；任务不存在或读取失败返回空串。"""
+    try:
+        r = run_hidden([_SCHTASKS, "/Query", "/TN", _TASK_NAME, "/XML"],
+                       capture_output=True, text=True, timeout=60)
+        return r.stdout or "" if r.returncode == 0 else ""
+    except Exception:
+        return ""
+
+
+def _task_target() -> tuple[str, str]:
+    """计划任务该执行什么：打包态用自身 GUI exe（Subsystem=window，无控制台），
+    源码态才用 python 跑 helper。"""
     if getattr(sys, "frozen", False):
         # 打包态：exe 自身带 --gemini-vss 分支（main.py 注册）
-        args = "--gemini-vss"
-    else:
-        script = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), "..", "..", "gemini_vss_helper.py"))
-        args = "-u \"%s\"" % script
+        return sys.executable, "--gemini-vss"
+    script = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "gemini_vss_helper.py"))
+    return sys.executable, "-u \"%s\"" % script
+
+
+def _task_matches(xml_text: str) -> bool:
+    """任务里的可执行文件必须就是当前程序。
+
+    历史遗留的任务可能还指向某个 python 解释器，这种任务以最高权限运行时会
+    弹出一个「管理员: ...python.exe」黑底控制台窗口，还会抢走前台焦点，
+    表现为桌面和任务栏跟着抽搐一下——所以宁可让 VSS 这条路失败，也不执行它。"""
+    exe, _ = _task_target()
+    if not xml_text or not exe:
+        return False
+    normalized = xml_text.replace("/", "\\").lower()
+    return exe.replace("/", "\\").lower() in normalized
+
+
+def _ensure_task() -> bool:
+    """确保 VSS 计划任务存在、且指向当前程序（首次创建弹一次 UAC，之后静默运行）。"""
+    if _task_matches(_schtasks_xml()):
+        return True
+    exe, args = _task_target()
     user = os.environ.get("USERNAME", "")
     ps = (
         "$action = New-ScheduledTaskAction -Execute \"%s\" -Argument \"%s\";"
@@ -180,9 +207,12 @@ def _ensure_task() -> bool:
     try:
         r = run_hidden([_PWSH, "-NoProfile", "-NonInteractive", "-EncodedCommand", b64],
                            capture_output=True, timeout=180)
-        return r.returncode == 0
+        if r.returncode != 0:
+            return False
     except Exception:
         return False
+    # 重建需要管理员权限：没权限时任务还是老样子，此时必须放弃，绝不拿旧任务去跑
+    return _task_matches(_schtasks_xml())
 
 
 def _run_vss_helper() -> bool:
