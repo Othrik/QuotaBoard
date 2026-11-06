@@ -64,6 +64,21 @@ def taskbar_window_rows(result,reset_mode='absolute'):
         rows.append(dict(markup=markup,reset=_metric_reset(result,metric,reset_mode)))
     return rows
 
+def taskbar_balance_rows(result,reset_mode='absolute'):
+    """积分/余额制平台：第一行只写「积分」或「余额」，第二行写数值。
+
+    返回 [{markup, reset}]；不是余额/积分制时返回空列表，交给单行走 refesh 文案。
+    """
+    if not result.ok:return []
+    from html import escape
+    text=taskbar_quota_text(result,reset_mode)
+    for prefix in ('余额','积分'):
+        if text.startswith(prefix):
+            value=text[len(prefix):].strip()
+            if value:
+                return [dict(markup=prefix,reset=''),dict(markup=escape(value),reset='')]
+    return []
+
 def taskbar_refresh_text(result):
     """余额类的第二行：数据刷新时刻，避免卡片只剩一行。"""
     if not result.ok:return ''
@@ -136,7 +151,7 @@ class TaskbarController(QObject):
             label_full=taskbar_label(row)
             _,badge=split_period_label(label_full,row.platform)
             reset_mode=self.config._data.get('reset_display','absolute')
-            window_rows=taskbar_window_rows(row,reset_mode)
+            window_rows=taskbar_window_rows(row,reset_mode) or taskbar_balance_rows(row,reset_mode)
             if window_rows:
                 layout=make_rows_layout(window_rows,self.config._data.get('display_typography'),badge=badge)
             else:

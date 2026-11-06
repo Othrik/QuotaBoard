@@ -2,7 +2,7 @@
 from datetime import datetime
 import time
 from quotaboard.model import QuotaResult
-from quotaboard.taskbar import taskbar_quota_text,taskbar_window_rows,taskbar_refresh_text
+from quotaboard.taskbar import taskbar_quota_text,taskbar_window_rows,taskbar_balance_rows,taskbar_refresh_text
 from quotaboard.taskbar_layout import make_layout,make_rows_layout
 
 def lines(layout):
@@ -39,7 +39,20 @@ assert any(p['text']=='0%' and p['color']=='#FFE45D6A' for p in ex_first)
 balance=QuotaResult('deepseek','DeepSeek开放平台','¥18.24',updated_at='2026-11-06 06:10:51')
 assert taskbar_window_rows(balance)==[],'余额类没有窗口'
 assert taskbar_refresh_text(balance)=='06:10 刷新'
-assert lines(make_layout(taskbar_quota_text(balance),None,taskbar_refresh_text(balance)))==['余额 ¥18.24','06:10 刷新']
+balance_rows=taskbar_balance_rows(balance)
+assert [r['markup'] for r in balance_rows]==['余额','¥18.24'],balance_rows
+assert lines(make_rows_layout(balance_rows))==['余额','¥18.24'],lines(make_rows_layout(balance_rows))
+
+credit=QuotaResult('zhipu_member','智谱清言','积分 23,938.48')
+credit_rows=taskbar_balance_rows(credit)
+assert [r['markup'] for r in credit_rows]==['积分','23,938.48'],credit_rows
+credit_layout=make_rows_layout(credit_rows)
+assert lines(credit_layout)==['积分','23,938.48']
+credit_texts=[p for row in credit_layout['children'][0]['children'][1]['children'] for p in row['children'] if p.get('type')=='text']
+assert all(p['color']=='#FF17202B' for p in credit_texts),'积分标签与数值都用墨色'
+assert '刷新' not in ''.join(p.get('text','') for p in credit_texts)
+big_credit=make_rows_layout(credit_rows,dict(name_size=16,quota_size=18))
+assert big_credit['height']<=48,'余额/积分两行也要落在宿主 48px 高度内'
 
 assert taskbar_window_rows(dual,reset_mode='countdown')[1]['reset'].endswith('重置')
 stamped=QuotaResult('gemini','Gemini','5h 94% · 周 29%',metrics=[
@@ -52,8 +65,8 @@ stamp=datetime(2026,11,6,9,30).timestamp()
 only_ts=QuotaResult('gemini','Gemini','5h 40%',metrics=[dict(label='5h',percent=40,resets_at=stamp)])
 assert taskbar_window_rows(only_ts)[0]['reset']=='09:30重置'
 failed=QuotaResult('gemini','Gemini','—',ok=False)
-assert taskbar_window_rows(failed)==[] and taskbar_refresh_text(failed)==''
+assert taskbar_window_rows(failed)==[] and taskbar_balance_rows(failed)==[] and taskbar_refresh_text(failed)==''
 
 big=make_rows_layout(rows,dict(name_size=16,quota_size=18))
 assert big['height']<=48,'宿主任务栏组件最大高度 48px'
-print('Taskbar per-window rows: 5h quota+reset, weekly quota+reset, single-window fallback, balance refresh line passed')
+print('Taskbar per-window rows: 5h quota+reset, weekly quota+reset, single-window fallback, balance/credit label+value passed')
