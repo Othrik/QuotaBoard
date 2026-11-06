@@ -203,6 +203,29 @@ def test_zhipu_member_provider() -> None:
     assert result.display == "积分 12.34", result.display
     print("[OK] 智谱清言客户端运行中（锁定）使用缓存 token 成功")
 
+    # 4b) 客户端运行中且缓存 token 已过期 → 明确提示退出客户端，不再拿死 token 去撞 401
+    import base64
+    import json as _json
+    import time as _time
+
+    def _jwt(exp: float) -> str:
+        head = base64.urlsafe_b64encode(b'{"alg":"HS256"}').rstrip(b'=').decode()
+        body = base64.urlsafe_b64encode(
+            _json.dumps({"exp": exp, "sub": "othrik"}).encode()).rstrip(b'=').decode()
+        return f"{head}.{body}.sig"
+
+    with mock.patch.object(zmp, "_read_sqlite_token", return_value=None), \
+            mock.patch.object(zmp, "_read_cache",
+                              return_value=_jwt(int(_time.time()) - 3600)):
+        ok, msg, tok = read_client_token()
+    assert not ok and tok == "" and "过期" in msg and "退出" in msg, (ok, msg)
+    with mock.patch.object(zmp, "_read_sqlite_token", return_value=None), \
+            mock.patch.object(zmp, "_read_cache",
+                              return_value=_jwt(int(_time.time()) + 3600)):
+        ok, msg, tok = read_client_token()
+    assert ok and tok, (ok, msg)
+    print("[OK] 智谱清言缓存 token 过期时明确提示、未过期时照常可用")
+
     # 5) 手动粘贴 token 优先于自动读取
     with mock.patch.object(zmp, "http_get_json", return_value=payload):
         result = PROVIDERS["zhipu_member"]({"manual_token": "manual-abc"}).fetch()

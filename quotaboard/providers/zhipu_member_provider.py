@@ -107,11 +107,35 @@ def _read_sqlite_token(db: str) -> str | None:
         return None
 
 
+def _jwt_exp(token: str) -> float:
+    """解析 JWT 的 exp（unix 秒）；解析失败返回 0。"""
+    import base64
+    import json
+    try:
+        seg = token.split(".")[1]
+        seg += "=" * (-len(seg) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(seg))
+        return float(payload.get("exp") or 0)
+    except Exception:
+        return 0.0
+
+
+def _token_expired(token: str) -> bool:
+    """token 是否已过期。exp 缺失时按未过期处理（交给服务端判定）。"""
+    import time
+    exp = _jwt_exp(token)
+    return bool(exp) and exp <= time.time() + 60
+
+
 def read_client_token(manual: str = "") -> tuple[bool, str, str]:
     """获取登录 token。优先级：手动粘贴 → Cookies 直读 → 本地加密缓存。
 
     返回 (是否找到, 错误说明, token)。从 Cookies 成功读取后自动刷新缓存，
     因此客户端运行期间（Cookie 被锁定）可继续使用缓存中的登录态。
+
+    智谱清言客户端运行时 Chromium 会独占锁住 Cookies，此时读不到新 token；
+    token 有效期 24 小时且只在客户端启动时续期，因此缓存过期后必须退出客户端
+    刷新一次，否则接口只会返回 401。
     """
     if manual:
         return True, "", manual
@@ -122,19 +146,29 @@ def read_client_token(manual: str = "") -> tuple[bool, str, str]:
         if token is None:
             # 客户端运行中，Cookie 被独占锁定：回退到缓存
             cached = _read_cache()
-            if cached:
+            if cached and not _token_expired(cached):
                 return True, "", cached
+            if cached:
+                return False, (
+                    "智谱清言客户端正在运行并占用登录文件，缓存的登录态已过期："
+                    "请退出智谱清言后刷新一次（QuotaBoard 会重新读取登录态），"
+                    "或在设置中手动粘贴 chatglm_token"), ""
             return False, (
-                "智谱清言客户端正在运行，登录态文件被锁定：请先关闭客户端刷新一次"
+                "智谱清言客户端正在运行，登录态文件被锁定：请先退出客户端刷新一次"
                 "（仅首次需要），或在设置中手动粘贴 chatglm_token"), ""
         if token:
+            if _token_expired(token):
+                return False, "智谱清言登录态已过期，请在客户端里重新登录一次", ""
             _write_cache(token)
             return True, "", token
         return False, "智谱清言客户端未登录（Cookie 中无 chatglm_token）", ""
 
     cached = _read_cache()
-    if cached:
+    if cached and not _token_expired(cached):
         return True, "", cached
+    if cached:
+        return False, (
+            "本地缓存的智谱清言登录态已过期：请打开并登录智谱清言客户端后刷新一次"), ""
     return False, "未找到智谱清言客户端登录态（未安装客户端或未登录）", ""
 
 
