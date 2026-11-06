@@ -19,16 +19,41 @@ from quotaboard.scheduler import Scheduler
 from quotaboard.ui import FloatingWindow, TrayIcon
 
 SHARED_MEM_KEY = "QuotaBoard_single_instance"
-# 持有引用，避免 QLockFile/QSharedMemory 被回收后锁提前释放
+MUTEX_NAME = "Local\\QuotaBoard.SingleInstance.v1"
+# 持有引用，避免 QLockFile/QSharedMemory/互斥量句柄被回收后锁提前释放
 _INSTANCE_GUARDS: list = []
+_MUTEX_HANDLE = None
+
+
+def _acquire_windows_mutex() -> bool:
+    """内核互斥量：两个实例几乎同时启动时也能只有一个拿到，
+    返回 False 表示已有实例在跑。拿不到句柄时不拦，交给后面的文件锁兜底。"""
+    global _MUTEX_HANDLE
+    if os.name != "nt":
+        return True
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    kernel32.CreateMutexW.argtypes = (wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR)
+    handle = kernel32.CreateMutexW(None, False, MUTEX_NAME)
+    if not handle:
+        return True
+    if ctypes.get_last_error() == 183:  # ERROR_ALREADY_EXISTS
+        kernel32.CloseHandle(handle)
+        return False
+    _MUTEX_HANDLE = handle
+    _INSTANCE_GUARDS.append(handle)
+    return True
 
 
 def _acquire_single_instance() -> QSharedMemory | None:
-    """单实例：共享内存 + 文件锁双保险。
-    共享内存已存在说明已有实例在运行，直接退出；共享内存在进程退出/被杀时
-    由系统自动释放，不会残留锁。
-    再叠一层文件锁，覆盖不同提权层级 / 不同会话各自启动的情况——两个实例
-    同时写同一份任务栏状态会让任务栏组件反复重建浮层（小窗连续闪现）。"""
+    """单实例：内核互斥量 + 共享内存 + 文件锁三层。
+    任何一层判定已有实例就直接退出；两个实例同时写同一份任务栏状态会让
+    任务栏组件反复重建浮层（小窗连续闪现、桌面跟着闪）。"""
+    if not _acquire_windows_mutex():
+        return None
     shm = QSharedMemory(SHARED_MEM_KEY)
     if not shm.create(1):
         return None
@@ -106,6 +131,12 @@ def main() -> int:
     code = app.exec()
     if shm is not None:
         shm.detach()
+    if _MUTEX_HANDLE:
+        try:
+            import ctypes
+            ctypes.WinDLL("kernel32").CloseHandle(_MUTEX_HANDLE)
+        except Exception:
+            pass
     return code
 
 

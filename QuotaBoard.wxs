@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*" Name="QuotaBoard" Language="2052" Version="1.1.60"
+  <Product Id="*" Name="QuotaBoard" Language="2052" Version="1.1.61"
            Manufacturer="Othrik" UpgradeCode="A576641E-1FDD-4908-B5BF-5C0B66B9F4EE"
            Codepage="936">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine"
